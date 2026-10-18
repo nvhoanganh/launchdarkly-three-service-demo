@@ -1,0 +1,9 @@
+{
+  "name": "three-team-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "./run.sh",
+    "test": "node --test test/dotnet-integration.test.mjs test/coverage.test.mjs"
+  }
+}

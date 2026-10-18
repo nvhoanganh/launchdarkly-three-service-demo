@@ -1,0 +1,14 @@
+node_modules/
+.env*
+*.log
+
+# Local credentials
+.environment
+**/bin/
+**/obj/
+.cache/
+__pycache__/
+
+.DS_Store
+artifacts/
+*.zip

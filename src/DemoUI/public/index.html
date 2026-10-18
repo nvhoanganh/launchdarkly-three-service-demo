@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Three-team release lab</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header><a href="/" class="brand"><span class="brand-mark">⇄</span> Three-team release lab</a><span id="status" role="status">Checking services…</span></header>
+  <main>
+    <section class="intro"><h1>Your combination.<br>One connected journey.</h1><p>Choose the logic each team wants to test. Follow a synthetic payment through three independent .NET services.</p></section>
+    <div class="workspace">
+      <aside class="controls">
+        <h2>Build a test context</h2>
+        <p class="quiet">Toggle the requested versions. Each service evaluates its own flag.</p>
+        <form id="demo-form">
+          <label class="toggle-row"><span><strong>Payment V2</strong><code>payments-v2</code></span><input id="payments" type="checkbox" role="switch"><span class="switch" aria-hidden="true"></span></label>
+          <label class="toggle-row"><span><strong>Risk V2</strong><code>risk-v2</code></span><input id="risk" type="checkbox" role="switch"><span class="switch" aria-hidden="true"></span></label>
+          <label class="toggle-row"><span><strong>Notification V2</strong><code>notifications-v2</code></span><input id="notifications" type="checkbox" role="switch"><span class="switch" aria-hidden="true"></span></label>
+          <div class="selection"><label for="scenario">Payment scenario</label><select id="scenario"><option value="high-value">High value · AUD 1,250</option><option value="standard">Standard · AUD 50</option></select></div>
+          <div class="selection"><label for="cohort">Cohort</label><select id="cohort"><option value="test">Test cohort</option><option value="release">Release cohort</option><option value="rollback">Rollback cohort</option></select></div>
+          <div class="combination">Requested <strong id="combination">000</strong><span>Payment / Risk / Notification</span></div>
+          <button type="submit" id="submit">Submit payment</button>
+        </form>
+        <div class="presets"><span>Combination presets</span><button data-bits="100">Payments · 100</button><button data-bits="110">Risk · 110</button><button data-bits="111">Notifications · 111</button></div>
+      </aside>
+      <section class="journey" aria-live="polite">
+        <div class="section-heading"><div><h2>What actually ran</h2><p class="quiet">PaymentService → RiskService → NotificationService</p></div><span id="observed">Awaiting request</span></div>
+        <div id="error" role="alert" hidden></div>
+        <div id="results" class="service-grid">
+          <article class="service empty"><span class="service-title">PaymentService</span><div class="version">—</div><p>Waiting for a payment</p><code>payments-v2</code><small>localhost:4311</small></article>
+          <article class="service empty"><span class="service-title">RiskService</span><div class="version">—</div><p>Waiting for payment context</p><code>risk-v2</code><small>localhost:4312</small></article>
+          <article class="service empty"><span class="service-title">NotificationService</span><div class="version">—</div><p>Waiting for the risk decision</p><code>notifications-v2</code><small>localhost:4313</small></article>
+        </div>
+        <section class="payment-summary" aria-label="Payment fee breakdown">
+          <div><span>Payment amount</span><strong id="payment-amount">—</strong></div>
+          <div><span>Fee charged</span><strong id="payment-fee">—</strong></div>
+          <div class="savings"><span>Customer saves</span><strong id="payment-savings">—</strong></div>
+          <div class="total"><span>Total charged</span><strong id="payment-total">—</strong></div>
+          <p id="fee-comparison">Payment V1 charges a 2% fee. Payment V2 gives a 50% discount on that fee.</p>
+        </section>
+        <div class="outcome"><span>End-to-end outcome</span><h3 id="outcome">Submit a combination to see the result.</h3><p id="outcome-detail" class="quiet">All business data is synthetic.</p></div>
+        <details><summary>See the stable context sent to every service</summary><pre id="context">No context submitted yet.</pre></details>
+        <details><summary>See the complete HTTP response and evaluation reasons</summary><pre id="response">No response yet.</pre></details>
+        <div class="explanation"><strong>What the toggles mean</strong><p>They set the <code>combination</code> context attribute. In live mode, LaunchDarkly rules decide the actual flag values. These controls never edit global flags.</p><p>Both code paths are already deployed. Flags release behavior; compatible contracts still need testing.</p></div>
+      </section>
+    </div>
+    <section class="coverage">
+      <div class="section-heading"><div><h2>Eight combinations make coverage visible</h2><p class="quiet">Three independent binary flags create 2³ = 8 behavior combinations.</p></div><button id="matrix" class="secondary">Test all 8 combinations</button></div>
+      <p id="coverage-scope" class="coverage-scope"></p>
+      <div class="table-scroll"><table class="coverage-table"><thead><tr><th>Scenario</th><th>Payments</th><th>Risk</th><th>Notifications</th><th>What to verify / actual outcome</th><th>Evidence</th></tr></thead><tbody id="matrix-results"></tbody></table></div>
+      <p class="coverage-note">Assert actual evaluations and outcomes. A requested combination is not test evidence.</p>
+      <p class="quiet">Before a run, On/Off cells show the requested plan. After a response, they show what each service actually evaluated. Submit updates one row; test all updates all eight.</p>
+    </section>
+  </main>
+  <footer>Three independent HTTP services. One stable context. Synthetic data only.</footer>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

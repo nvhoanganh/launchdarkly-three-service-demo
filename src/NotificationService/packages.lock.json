@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net8.0": {
+      "LaunchDarkly.ServerSdk": {
+        "type": "Direct",
+        "requested": "[8.17.2, )",
+        "resolved": "8.17.2",
+        "contentHash": "ClMclLGtdJcJm+/B8i9iSiQJ7el4nA9Sl+gWxazsr+0gp8uhKrX+d6MDcXdVSAFGJ419CISMlR9DL++5CHllDQ==",
+        "dependencies": {
+          "LaunchDarkly.Cache": "1.0.2",
+          "LaunchDarkly.CommonSdk": "7.2.0",
+          "LaunchDarkly.EventSource": "6.0.0",
+          "LaunchDarkly.InternalSdk": "3.11.1",
+          "LaunchDarkly.Logging": "2.1.0"
+        }
+      },
+      "LaunchDarkly.Cache": {
+        "type": "Transitive",
+        "resolved": "1.0.2",
+        "contentHash": "0bEnUVFVeW1TTDXb/bW6kS3FLQTLeGtw7Xh8yt6WNO56utVmtgcrMLvcnF6yeTn+N4FXrKfW09KkLNmK8YYQvw=="
+      },
+      "LaunchDarkly.CommonSdk": {
+        "type": "Transitive",
+        "resolved": "7.2.0",
+        "contentHash": "YLT9rl0ooxHVNWtSsKBjtqdBt8Ysg99sXHAO1G8dcSH4B6yv3qR0lyCo6GEb9EQpUuGdneGqO7Bs7K2B8F+lTg==",
+        "dependencies": {
+          "LaunchDarkly.Logging": "2.0.0"
+        }
+      },
+      "LaunchDarkly.EventSource": {
+        "type": "Transitive",
+        "resolved": "6.0.0",
+        "contentHash": "GQGSWpmcx5x0bkFQH/6KZsFXRTspNx+0uEMMHrYDdUqEqYHF/71SRIdKILjTBe7VWJTAJHABR5U7HWZJG/XWSA==",
+        "dependencies": {
+          "LaunchDarkly.Logging": "[2.0.0, 3.0.0)"
+        }
+      },
+      "LaunchDarkly.InternalSdk": {
+        "type": "Transitive",
+        "resolved": "3.11.1",
+        "contentHash": "L/ZRcRHFCJgyXgOQgBt6Cn+lnI3xVqejFly36s3GcblHFzJoDzli1ZfWxDmKe1HRz45tjiksXZNdFD6oCLyGRg==",
+        "dependencies": {
+          "LaunchDarkly.CommonSdk": "[7.2.0, 8.0.0)",
+          "LaunchDarkly.Logging": "[2.0.0, 3.0.0)"
+        }
+      },
+      "LaunchDarkly.Logging": {
+        "type": "Transitive",
+        "resolved": "2.1.0",
+        "contentHash": "v3sjm7PZDuAYR/N225rPNrl8M9dozBFkF7zxhdD2qPAJ7O/7k7/AJxEI6yTkqx5jn/8b495xvAuesTfNpsdi4A==",
+        "dependencies": {
+          "Microsoft.Extensions.Logging.Abstractions": "8.0.3"
+        }
+      },
+      "Microsoft.Extensions.DependencyInjection.Abstractions": {
+        "type": "Transitive",
+        "resolved": "8.0.2",
+        "contentHash": "3iE7UF7MQkCv1cxzCahz+Y/guQbTqieyxyaWKhrRO91itI9cOKO76OHeQDahqG4MmW5umr3CcCvGmK92lWNlbg=="
+      },
+      "Microsoft.Extensions.Logging.Abstractions": {
+        "type": "Transitive",
+        "resolved": "8.0.3",
+        "contentHash": "dL0QGToTxggRLMYY4ZYX5AMwBb+byQBd/5dMiZE07Nv73o6I5Are3C7eQTh7K2+A4ct0PVISSr7TZANbiNb2yQ==",
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "8.0.2"
+        }
+      }
+    }
+  }
+}
