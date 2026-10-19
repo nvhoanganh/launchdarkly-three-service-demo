@@ -4,7 +4,7 @@ A live LaunchDarkly demonstration with three independent .NET services and an Ex
 
 ## Run
 
-Create a local `.environment` file and put the server-side SDK key for **launch-darkly-demo → production** in the local `.environment` file:
+Create a local `.env` file and put the server-side SDK key for **launch-darkly-demo → production** in the local `.env` file:
 
 ```dotenv
 LD_SDK_KEY=your-server-side-sdk-key
@@ -16,7 +16,7 @@ Then run:
 ./run.sh
 ```
 
-Open **http://127.0.0.1:4310**. Ctrl-C stops all four processes. Requires .NET 8+ SDK and Node 20.12+. First build restores NuGet/npm dependencies. The SDK key is loaded by the launcher, never displayed, and never passed to Express. `.environment` is excluded from Git and the source ZIP. No management API key is needed to run the demo. The old `LD_MODE` setting is unused; there is no simulation mode.
+Open **http://127.0.0.1:4310**. Ctrl-C stops all four processes. Requires .NET 8+ SDK and Node 20.12+. First build restores NuGet/npm dependencies. The SDK key is loaded by the launcher, never displayed, and never passed to Express. `.env` is excluded from Git and the source ZIP. No management API key is needed to run the demo. The old `LD_MODE` setting is unused; there is no simulation mode.
 
 ## Read the code
 
@@ -134,7 +134,7 @@ dotnet run --project src/NotificationService
 cd src/DemoUI && npm start
 ```
 
-The root launcher handles `.environment` loading for the one-command flow.
+The root launcher handles `.env` loading for the one-command flow.
 
 ## Verification
 
@@ -155,7 +155,7 @@ Flags select logic already deployed in the binaries. They do not deploy code or 
 python3 scripts/package-demo.py
 ```
 
-Creates `../three-team-demo.zip` from an explicit allowlist, excluding `.environment`, `.env*`, credentials, node_modules, .NET bin/obj, logs and legacy code. Earlier Node source is archived outside this project in `../previous-node-demo` and is not executed or packaged.
+Creates `../three-team-demo.zip` from an explicit allowlist, excluding `.env`, `.env*`, credentials, node_modules, .NET bin/obj, logs and legacy code. Earlier Node source is archived outside this project in `../previous-node-demo` and is not executed or packaged.
 
 Official SDK guidance: https://launchdarkly.com/docs/sdk/server-side/dotnet . Package: LaunchDarkly.ServerSdk 8.17.2.
 

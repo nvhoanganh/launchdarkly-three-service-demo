@@ -4,7 +4,7 @@ import {loadEnvFile} from 'node:process';
 import {fileURLToPath} from 'node:url';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const settings = new URL('../.environment', import.meta.url);
+const settings = new URL('../.env', import.meta.url);
 // Load the local SDK key without displaying it or passing it to the UI.
 if (existsSync(settings)) {
   loadEnvFile(fileURLToPath(settings));

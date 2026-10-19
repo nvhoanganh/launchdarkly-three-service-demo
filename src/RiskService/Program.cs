@@ -8,7 +8,7 @@ builder.Services.AddSingleton(new HttpClient { Timeout = TimeSpan.FromSeconds(10
 
 // One LaunchDarkly client for this service's lifetime.
 string sdkKey = builder.Configuration["LD_SDK_KEY"]
-    ?? throw new InvalidOperationException("Set LD_SDK_KEY in .environment.");
+    ?? throw new InvalidOperationException("Set LD_SDK_KEY in .env.");
 
 using var launchDarklyClient = new LdClient(
     Configuration.Builder(sdkKey)

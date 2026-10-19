@@ -3,7 +3,7 @@ node_modules/
 *.log
 
 # Local credentials
-.environment
+.env
 **/bin/
 **/obj/
 .cache/
