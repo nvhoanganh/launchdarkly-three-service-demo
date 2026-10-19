@@ -4,7 +4,13 @@ A live LaunchDarkly demonstration with three independent .NET services and an Ex
 
 ## Run
 
-Create a local `.env` file and put the server-side SDK key for **launch-darkly-demo → production** in the local `.env` file:
+Copy the example configuration, then edit `.env` and set the server-side SDK key for **launch-darkly-demo → production** (or your own configured demo environment):
+
+```sh
+cp .env.EXAMPLE .env
+```
+
+Set this value in `.env`:
 
 ```dotenv
 LD_SDK_KEY=your-server-side-sdk-key

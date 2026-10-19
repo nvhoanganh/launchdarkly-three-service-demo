@@ -12,3 +12,6 @@ __pycache__/
 .DS_Store
 artifacts/
 *.zip
+
+# Track the credential-free configuration template only
+!.env.EXAMPLE
