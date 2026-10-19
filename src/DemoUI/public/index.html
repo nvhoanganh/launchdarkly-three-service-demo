@@ -28,6 +28,11 @@
       <section class="journey" aria-live="polite">
         <div class="section-heading"><div><h2>What actually ran</h2><p class="quiet">PaymentService → RiskService → NotificationService</p></div><span id="observed">Awaiting request</span></div>
         <div id="error" role="alert" hidden></div>
+        <section class="route-panel" aria-label="Request journey">
+          <div class="route-heading"><strong>Follow the request</strong><span id="route-status" role="status">Submit a payment to follow its journey.</span></div>
+          <div class="route-scroll"><div id="route-flow" class="route-flow"></div></div>
+          <p class="route-caption">Animated replay of the returned service trace. UI → Express → Payment → Risk → Notification; the response returns through the same chain.</p>
+        </section>
         <div id="results" class="service-grid">
           <article class="service empty"><span class="service-title">PaymentService</span><div class="version">—</div><p>Waiting for a payment</p><code>payments-v2</code><small>localhost:4311</small></article>
           <article class="service empty"><span class="service-title">RiskService</span><div class="version">—</div><p>Waiting for payment context</p><code>risk-v2</code><small>localhost:4312</small></article>

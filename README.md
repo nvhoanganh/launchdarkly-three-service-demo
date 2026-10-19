@@ -167,3 +167,6 @@ Official SDK guidance: https://launchdarkly.com/docs/sdk/server-side/dotnet . Pa
 
 ### Deliberate failure: 011
 Payment Default + Risk V2 + Notification V2 returns HTTP 422 with a visible compatibility error. This intentionally seeded demo dependency is checked against actual SDK evaluations, not requested toggles. Enable Payment V2 (111), disable Risk (001), or disable Notification (010) to recover. No real receipt is sent.
+
+## Request animation
+Submit payment replays the actual returned trace across Web UI → Payment → Risk → Notification → Response. Each service box highlights its evaluated Default or V2 branch. The response box shows success or the deliberate 011 compatibility error. This is a visual replay, not live per-service telemetry. Reduced-motion preferences skip animation delays.

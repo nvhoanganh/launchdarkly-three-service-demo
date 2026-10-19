@@ -1,3 +1,4 @@
+import {resetRoute, replayRoute, failRoute} from './route.mjs';
 import {scenarios, verifyResult} from './coverage.mjs';
 const toggles = ['payments', 'risk', 'notifications'].map(id => document.getElementById(id));
 const byId = id => document.getElementById(id);
@@ -48,6 +49,7 @@ for (const id of ['scenario', 'cohort']) {
   });
 }
 renderCoverage();
+resetRoute();
 
 async function send(options) {
   const response = await fetch('/api/demo', {
@@ -102,7 +104,17 @@ document.querySelectorAll('[data-bits]').forEach(button => button.addEventListen
 }));
 byId('demo-form').addEventListener('submit', event => {
   event.preventDefault();
-  busy(byId('submit'), async () => render(await send(selection())));
+  busy(byId('submit'), async () => {
+    resetRoute(true);
+    try {
+      const result = await send(selection());
+      await replayRoute(result);
+      render(result);
+    } catch (error) {
+      failRoute(error.message);
+      throw error;
+    }
+  });
 });
 byId('matrix').addEventListener('click', () => busy(byId('matrix'), async () => {
   const scope = selection();

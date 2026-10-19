@@ -10,7 +10,7 @@ FILES = [
     'scripts/setup-launchdarkly.py', 'scripts/package-demo.py',
     'test/dotnet-integration.test.mjs', 'test/test_setup.py', 'test/coverage.test.mjs',
     'src/DemoUI/package.json', 'src/DemoUI/package-lock.json', 'src/DemoUI/server.mjs',
-    'src/DemoUI/public/coverage.mjs', 'src/DemoUI/public/index.html', 'src/DemoUI/public/styles.css', 'src/DemoUI/public/app.js',
+    'src/DemoUI/public/route.mjs', 'src/DemoUI/public/coverage.mjs', 'src/DemoUI/public/index.html', 'src/DemoUI/public/styles.css', 'src/DemoUI/public/app.js',
     'artifacts/dotnet-test-results.txt', 'artifacts/live-fee-matrix-results.txt',
      'artifacts/coverage-test-results.txt',
 ]
