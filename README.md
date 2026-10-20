@@ -52,7 +52,7 @@ var context = Context.Builder(request.Context.Key)
     .Kind("demo")
     .Set("team", request.Context.Team)
     .Set("cohort", request.Context.Cohort)
-    .Set("scenario", request.Context.Scenario)
+    .Set("amount", (double)request.Context.Amount)
     .Set("combination", request.Context.Combination)
     .Build();
 
@@ -82,7 +82,7 @@ Each .NET project builds and runs independently. There are no project references
 
 ## Demonstrate the business difference
 
-Use the AUD 1,250 high-value scenario:
+Use the AUD 1,250 AUD 1,250 payment:
 
 | Payment version | Fee | Savings | Total |
 |---|---:|---:|---:|
@@ -97,9 +97,9 @@ These are synthetic demo fees. No real payment or messaging system is called.
 4. Add Notification V2 (`111`): the receipt explains the review and itemizes the discounted fee.
 5. Click **Test all 8 combinations**: seven combinations succeed; `011` shows the deliberate compatibility error.
 
-The UI shows blue V2 and grey Default based on actual evaluations. The matrix displays actual On/Off values and business outputs. Untested rows show requested values labelled Requested, never a pass. A row is Verified only if evaluations, fee/savings/total, risk decision and receipt match, with no SDK error. Changing scenario/cohort clears previous table evidence.
+The UI shows blue V2 and grey Default based on actual evaluations. The matrix displays actual On/Off values and business outputs. Untested rows show requested values labelled Requested, never a pass. A row is Verified only if evaluations, fee/savings/total, risk decision and receipt match, with no SDK error. Changing amount/cohort clears previous table evidence.
 
-The toggles set the `combination` context attribute; they do not edit global flags or override LaunchDarkly's decisions. The context kind is `demo`, with `key`, `team`, `cohort`, `scenario`, `combination`. The synthetic key stays stable as combinations change; each journey has a separate request ID.
+The toggles set the `combination` context attribute; they do not edit global flags or override LaunchDarkly's decisions. The context kind is `demo`, with `key`, `team`, `cohort`, `amount`, `combination`. The synthetic key stays stable as combinations change; each journey has a separate request ID.
 
 ## Existing flag rules
 
@@ -151,7 +151,7 @@ npm test
 node scripts/test-combinations.mjs
 ```
 
-The integration suite calls the running live demo; it does not load SDK credentials, change flags, start replacement processes or stop your demo. It verifies both payment scenarios across all eight combinations, explicit flag keys, business outcomes, stable propagated contexts, distinct service processes, 60 concurrent team requests, rollback-cohort behavior, invalid inputs and the curl endpoint. Pure coverage-verifier tests use fictional responses and check that incorrect fees, receipts or SDK fallback errors fail verification.
+The integration suite calls the running live demo; it does not load SDK credentials, change flags, start replacement processes or stop your demo. It verifies six payment amounts across all eight combinations, explicit flag keys, business outcomes, stable propagated contexts, distinct service processes, 60 concurrent team requests, rollback-cohort behavior, invalid inputs and the curl endpoint. Pure coverage-verifier tests use fictional responses and check that incorrect fees, receipts or SDK fallback errors fail verification.
 
 Flags select logic already deployed in the binaries. They do not deploy code or replace compatible HTTP contracts. This local synthetic demo omits production authentication, persistence and real financial/messaging integrations.
 
@@ -166,7 +166,12 @@ Creates `../three-team-demo.zip` from an explicit allowlist, excluding `.env`, `
 Official SDK guidance: https://launchdarkly.com/docs/sdk/server-side/dotnet . Package: LaunchDarkly.ServerSdk 8.17.2.
 
 ### Deliberate failure: 011
-Payment Default + Risk V2 + Notification V2 returns HTTP 422 with a visible compatibility error. This intentionally seeded demo dependency is checked against actual SDK evaluations, not requested toggles. Enable Payment V2 (111), disable Risk (001), or disable Notification (010) to recover. No real receipt is sent.
+Payment Default + Risk V2 + Notification V2 returns HTTP 500 with a visible compatibility error. This intentionally seeded demo dependency is checked against actual SDK evaluations, not requested toggles. Enable Payment V2 (111), disable Risk (001), or disable Notification (010) to recover. No real receipt is sent.
 
 ## Request animation
 Submit payment replays the actual returned trace across Web UI → Payment → Risk → Notification → Response. Each service box highlights its evaluated Default or V2 branch. The response box shows success or the deliberate 011 compatibility error. This is a visual replay, not live per-service telemetry. Reduced-motion preferences skip animation delays.
+
+The amount selector sends a numeric `amount` (AUD 50, 500, 999, 1000, 1250 or 5000) in the stable context. PaymentService uses it to calculate fees; Risk V2 approves amounts below AUD 1,000 and requests review at or above AUD 1,000. Risk V1 retains baseline approval. No scenario label determines the amount.
+
+## Live service logs
+Each service box has an Application logs panel, expanded by default. SSE streams synthetic request IDs, amounts, evaluated flags and reasons directly from each .NET service through Express. Panels retain the latest 100 entries in memory and preserve their expanded state during replay. They show new application events while connected, not historical console/SDK output. Streams reconnect automatically and disconnect when the page closes.

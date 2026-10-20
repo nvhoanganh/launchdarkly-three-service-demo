@@ -26,6 +26,7 @@ app.MapGet("/health", () => Results.Ok(new
 }));
 
 app.MapPost("/process", ProcessJourney);
+app.MapGet("/logs", ApplicationLogs.Stream);
 
 // Curl-friendly profiles use the same HTTP journey as the UI.
 app.MapGet("/demo", async (HttpRequest httpRequest, HttpClient httpClient, CancellationToken cancellationToken) =>
@@ -50,7 +51,7 @@ app.MapGet("/demo", async (HttpRequest httpRequest, HttpClient httpClient, Cance
     var request = new JourneyRequest
     {
         Context = new DemoContext(
-            $"synthetic-{user}", profile.Team, profile.Cohort, "high-value", profile.Combination)
+            $"synthetic-{user}", profile.Team, profile.Cohort, 1250m, profile.Combination)
     };
 
     return await ProcessJourney(request, httpClient, cancellationToken);
@@ -70,7 +71,7 @@ async Task<IResult> ProcessJourney(JourneyRequest request, HttpClient httpClient
         .Kind("demo")
         .Set("team", request.Context.Team)
         .Set("cohort", request.Context.Cohort)
-        .Set("scenario", request.Context.Scenario)
+        .Set("amount", (double)request.Context.Amount)
         .Set("combination", request.Context.Combination)
         .Build();
 
@@ -78,7 +79,7 @@ async Task<IResult> ProcessJourney(JourneyRequest request, HttpClient httpClient
     var evaluation = launchDarklyClient.BoolVariationDetail("payments-v2", context, false);
     bool usePaymentV2 = evaluation.Value;
 
-    request.Data.Amount = request.Context.Scenario == "high-value" ? 1250m : 50m;
+    request.Data.Amount = request.Context.Amount;
     request.Data.Currency = "AUD";
 
     // Both paths charge a transparent 2% standard fee; V2 introduces a 50% fee discount.
@@ -100,6 +101,12 @@ async Task<IResult> ProcessJourney(JourneyRequest request, HttpClient httpClient
         behavior = FormattableString.Invariant($"Standard 2% fee: AUD {request.Data.Fee:F2}; no discount");
     }
 
+    ApplicationLogs.Write("PaymentService", request.RequestId,
+        $"AUD {request.Context.Amount} | payments-v2 = {evaluation.Value} | {evaluation.Reason}");
+    app.Logger.LogInformation(
+        "Request {RequestId} | amount AUD {Amount} | flag {FlagKey} = {FlagValue} | reason {Reason}",
+        request.RequestId, request.Context.Amount, "payments-v2", evaluation.Value, evaluation.Reason);
+
     request.Trace.Add(new ServiceDecision(
         "PaymentService",
         "payments-v2",
@@ -116,6 +123,11 @@ async Task<IResult> ProcessJourney(JourneyRequest request, HttpClient httpClient
             "http://127.0.0.1:4312/process", request, cancellationToken);
 
         // Preserve downstream status and diagnostics, including compatibility failures.
+        if (!response.IsSuccessStatusCode)
+        {
+            ApplicationLogs.Write("PaymentService", request.RequestId,
+                $"Downstream request failed: HTTP {(int)response.StatusCode}.", "error");
+        }
         string body = await response.Content.ReadAsStringAsync(cancellationToken);
         return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
     }

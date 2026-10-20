@@ -6,4 +6,46 @@
 
 /* Five connected boxes stay in one horizontal row, including on narrow screens. */
 main{max-width:1800px}.workspace{grid-template-columns:280px minmax(0,1fr)}
-.route-panel{background:#fff;border:1px solid var(--line);padding:20px;margin-bottom:22px;border-radius:8px}.route-heading{display:flex;justify-content:space-between;gap:16px;margin-bottom:20px}.route-heading strong{font-size:15px}.route-heading>span{font-size:12px;color:#587084}.route-scroll{overflow-x:auto;padding:3px 2px 10px}.route-flow{display:flex;align-items:center;min-width:640px;gap:6px}.route-node{flex:1;min-width:0;border:1px solid #b9cbd9;border-top:4px solid #93a5b4;border-radius:6px;padding:14px 10px;background:#f7f9fc;min-height:168px;transition:background .2s,border-color .2s}.route-node>strong{font-size:13px}.route-arrow{font-size:24px;color:#a5b4c1;flex:0 0 18px}.route-arrow.travelled{color:#1767bc}.route-track{height:65px;position:relative;display:flex;flex-direction:column;justify-content:center;gap:7px;padding:5px 0 5px 15px}.route-track:before{content:'';position:absolute;left:3px;top:10px;bottom:10px;width:2px;background:#c4d2df}.route-branch{font-size:11px;border:1px solid #c5d2de;border-radius:3px;padding:3px 7px;color:#7c8fa0;background:#fff}.selected-v2{background:#e0f0ff;border-top-color:#1767bc}.selected-v2 .v2-branch{color:#fff;background:#1767bc;border-color:#1767bc;font-weight:700}.selected-default .default-branch{color:#fff;background:#60778b;border-color:#60778b;font-weight:700}.route-packet{position:absolute;left:0;top:14px;width:8px;height:8px;background:#1767bc;border-radius:50%;opacity:0}.active{outline:2px solid #1767bc;outline-offset:2px}.active .route-packet{opacity:1;animation:route-pulse .65s ease-in-out}.selected-v2 .route-packet{top:44px}.route-detail{font-size:11px;display:block;line-height:1.4;min-height:30px}.route-node code{display:block;font-size:9px;overflow-wrap:anywhere;color:#587084;margin-top:5px}.route-failed{background:#fff0ef;border-color:#d85656;color:#9e2424}.route-complete{border-top-color:#218164}.route-caption{font-size:11px;color:#587084;margin:9px 0 0;max-width:85ch}@keyframes route-pulse{0%{transform:translateX(-5px);opacity:.2}50%{transform:translateX(12px);opacity:1}100%{transform:translateX(0);opacity:.8}}@media(max-width:750px){.workspace{grid-template-columns:1fr}.route-heading{flex-direction:column;gap:6px}}@media(prefers-reduced-motion:reduce){.route-packet{animation:none!important}}
+.route-panel{background:#fff;border:1px solid var(--line);padding:20px;margin-bottom:22px;border-radius:8px}.route-heading{display:flex;justify-content:space-between;gap:16px;margin-bottom:20px}.route-heading strong{font-size:15px}.route-heading>span{font-size:12px;color:#587084}.route-scroll{overflow-x:auto;padding:3px 2px 10px}.route-flow{display:flex;align-items:flex-start;min-width:640px;gap:6px}.route-node{flex:1;min-width:0;border:1px solid #b9cbd9;border-top:4px solid #93a5b4;border-radius:6px;padding:14px 10px;background:#f7f9fc;min-height:168px;transition:background .2s,border-color .2s}.route-node>strong{font-size:13px}.route-arrow{font-size:24px;color:#a5b4c1;flex:0 0 18px}.route-arrow.travelled{color:#1767bc}.route-track{height:65px;position:relative;display:flex;flex-direction:column;justify-content:center;gap:7px;padding:5px 0 5px 15px}.route-track:before{content:'';position:absolute;left:3px;top:10px;bottom:10px;width:2px;background:#c4d2df}.route-branch{font-size:11px;border:1px solid #c5d2de;border-radius:3px;padding:3px 7px;color:#7c8fa0;background:#fff}.selected-v2{background:#e0f0ff;border-top-color:#1767bc}.selected-v2 .v2-branch{color:#fff;background:#1767bc;border-color:#1767bc;font-weight:700}.selected-default .default-branch{color:#fff;background:#60778b;border-color:#60778b;font-weight:700}.route-packet{position:absolute;left:0;top:14px;width:8px;height:8px;background:#1767bc;border-radius:50%;opacity:0}.active{outline:2px solid #1767bc;outline-offset:2px}.active .route-packet{opacity:1;animation:route-pulse .65s ease-in-out}.selected-v2 .route-packet{top:44px}.route-detail{font-size:11px;display:block;line-height:1.4;min-height:30px}.route-node code{display:block;font-size:9px;overflow-wrap:anywhere;color:#587084;margin-top:5px}.route-failed{background:#fff0ef;border-color:#d85656;color:#9e2424}.route-complete{border-top-color:#218164}.route-caption{font-size:11px;color:#587084;margin:9px 0 0;max-width:85ch}@keyframes route-pulse{0%{transform:translateX(-5px);opacity:.2}50%{transform:translateX(12px);opacity:1}100%{transform:translateX(0);opacity:.8}}@media(max-width:750px){.workspace{grid-template-columns:1fr}.route-heading{flex-direction:column;gap:6px}}@media(prefers-reduced-motion:reduce){.route-packet{animation:none!important}}
+
+.route-node[data-hop="4"]{flex:1.65}.route-outcome{margin-top:10px;padding-top:10px;border-top:1px solid #c5d2de;overflow-wrap:anywhere}.route-outcome strong{font-size:12px;line-height:1.5;display:block}.route-outcome p{font-size:11px;line-height:1.5;margin:7px 0 0;color:inherit}
+
+/* Replay enters the service, then follows the actual evaluated branch. */
+.route-node.active .route-packet{animation:route-enter .4s ease-out both}
+.route-node.active.selected-default .route-packet{animation:branch-default .4s ease-in-out both}
+.route-node.active.selected-v2 .route-packet{animation:branch-v2 .4s ease-in-out both}
+.route-node.active.selected-default .default-branch,.route-node.active.selected-v2 .v2-branch{animation:branch-select .4s ease-out both;transform-origin:left center}
+@keyframes route-enter{0%{opacity:0;transform:translateX(-10px)}35%{opacity:1;transform:translateX(0)}100%{opacity:0;transform:translateX(35px)}}
+@keyframes branch-default{0%{top:28px;left:-8px;opacity:0}25%{top:28px;left:0;opacity:1}55%{top:14px;left:0;opacity:1}100%{top:14px;left:80%;opacity:0}}
+@keyframes branch-v2{0%{top:28px;left:-8px;opacity:0}25%{top:28px;left:0;opacity:1}55%{top:44px;left:0;opacity:1}100%{top:44px;left:80%;opacity:0}}
+@keyframes branch-select{0%,30%{filter:brightness(1.2);transform:scale(.96);box-shadow:0 0 0 0 #1767bc00}65%{filter:brightness(1.05);transform:scale(1.03);box-shadow:0 0 0 3px #1767bc30}100%{filter:none;transform:scale(1);box-shadow:0 0 0 0 #1767bc00}}
+@media(prefers-reduced-motion:reduce){.route-node.active .route-packet,.route-node.active .route-branch{animation:none!important}}
+
+.route-node[data-hop="4"]{flex:2}.response-money{margin:12px 0 0;border-top:1px solid #c5d2de;padding-top:7px}.response-money>div{display:flex;justify-content:space-between;gap:8px;margin:6px 0;font-size:11px}.response-money dt{color:#587084}.response-money dd{margin:0;font-weight:700;white-space:nowrap}.response-money>div:nth-child(3) dd{color:#157553}.response-money>div:last-child{border-top:1px solid #c5d2de;padding-top:7px}.response-money>div:last-child dd{color:#1767bc}.route-outcome .response-fee{font-size:10px;color:#587084}
+
+.route-arrow{align-self:flex-start;margin-top:65px}
+
+#submit{margin-top:20px}
+
+.payload-previews{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.payload-previews details{min-width:0}.payload-previews pre{height:320px;max-height:320px;margin-bottom:0;overflow:auto}@media(max-width:750px){.payload-previews{grid-template-columns:1fr}}
+
+.service-logs{margin-top:12px;padding:10px 0 0;border-top:1px solid #c5d2de;border-bottom:0}.service-logs summary{font-size:11px}.service-logs pre{font-size:10px;line-height:1.5;padding:8px;margin:8px 0 0;height:180px;max-height:180px;background:#152435;color:#d5e8f5;white-space:pre-wrap;overflow-wrap:anywhere}
+
+/* Give the service journey and its logs the available screen width. */
+main{max-width:none;width:100%;padding-left:24px;padding-right:24px}
+.workspace{grid-template-columns:260px minmax(0,1fr);gap:24px}
+.route-panel{padding:20px 16px}
+.route-flow{min-width:1100px;gap:12px}
+.route-node{min-width:180px;padding:16px 14px}
+.route-node[data-hop="0"]{flex:.8;min-width:130px}
+.route-node[data-hop="4"]{flex:1.35;min-width:240px}
+.service-logs pre{font-size:12px;height:240px;max-height:240px;line-height:1.6}
+.route-node code{font-size:11px}
+@media(max-width:750px){main{padding-left:16px;padding-right:16px}.workspace{grid-template-columns:1fr}}
+
+/* Prioritize service logs over the request and response endpoints. */
+.route-node{flex:1.5;min-width:220px}
+.route-node[data-hop="0"]{flex:.5;min-width:105px;padding-left:10px;padding-right:10px}
+.route-node[data-hop="4"]{flex:.85;min-width:180px;padding-left:12px;padding-right:12px}
+
+.log-line{display:block;margin-bottom:6px}.log-line.log-error{color:#ff9292;background:#702c3659;border-left:3px solid #ff7070;padding:5px 7px}

@@ -16,7 +16,7 @@ FILES = [
 ]
 for service in ['PaymentService', 'RiskService', 'NotificationService']:
     FILES += [f'src/{service}/{name}' for name in [
-        f'{service}.csproj', 'Program.cs', 'Contracts.cs', 'packages.lock.json']]
+        f'{service}.csproj', 'Program.cs', 'Contracts.cs', 'ApplicationLogs.cs', 'packages.lock.json']]
 
 def package(root=ROOT):
     output = root.parent / 'three-team-demo.zip'

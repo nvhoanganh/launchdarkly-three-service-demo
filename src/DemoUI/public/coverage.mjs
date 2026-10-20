@@ -18,7 +18,7 @@ export function verifyResult(result) {
   if (observed !== expected) errors.push(`Expected ${expected}; evaluated ${observed}`);
   if (result.trace.some(step => step.reason.includes('ERROR'))) errors.push('SDK fallback/error');
 
-  const amount = result.context.scenario === 'high-value' ? 1250 : 50;
+  const amount = result.context.amount;
   const riskDecision = expected[1] === '1' && amount >= 1000 ? 'review' : 'approve';
   const standardFee = Math.round(amount * 0.02 * 100) / 100;
   const discount = expected[0] === '1' ? Math.round(standardFee * 0.5 * 100) / 100 : 0;

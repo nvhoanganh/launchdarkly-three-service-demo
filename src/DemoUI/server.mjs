@@ -19,21 +19,43 @@ app.get('/api/health', async (_request, response) => {
   }
 });
 
+// Read-only SSE proxy to each independent service; closed tabs cancel upstream streams.
+app.get('/api/logs/:service', async (request, response) => {
+  const port = {payment: 4311, risk: 4312, notification: 4313}[request.params.service];
+  if (!port) return response.sendStatus(404);
+  const controller = new AbortController();
+  response.on('close', () => controller.abort());
+  try {
+    const upstream = await fetch(`http://127.0.0.1:${port}/logs`, {signal: controller.signal});
+    if (!upstream.ok) return response.sendStatus(502);
+    response.set({'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'});
+    response.flushHeaders();
+    const heartbeat = setInterval(() => response.write(': heartbeat\n\n'), 15000);
+    try {
+      for await (const chunk of upstream.body) {
+        if (!response.write(chunk)) { controller.abort(); break; }
+      }
+    } finally { clearInterval(heartbeat); }
+  } catch {
+    if (!response.headersSent) response.sendStatus(502);
+  } finally { response.end(); }
+});
+
 app.post('/api/demo', async (request, response) => {
-  const {paymentsV2, riskV2, notificationsV2, team = 'payments', scenario = 'high-value', cohort = 'test'} = request.body;
+  const {paymentsV2, riskV2, notificationsV2, team = 'payments', amount = 1250, cohort = 'test'} = request.body;
   if (![paymentsV2, riskV2, notificationsV2].every(value => typeof value === 'boolean') ||
       !['payments', 'risk', 'notifications'].includes(team) ||
-      !['standard', 'high-value'].includes(scenario) || !['test', 'release', 'rollback'].includes(cohort)) {
-    return response.status(400).json({error: 'Choose valid toggles, team, cohort and payment scenario.'});
+      !Number.isFinite(amount) || amount <= 0 || amount > 1000000 || Math.abs(amount * 100 - Math.round(amount * 100)) > 0.000001 || !['test', 'release', 'rollback'].includes(cohort)) {
+    return response.status(400).json({error: 'Choose valid toggles, team, cohort and payment amount.'});
   }
 
   // Toggles select a synthetic test context, NOT global flag settings.
   const combination = [paymentsV2, riskV2, notificationsV2].map(value => value ? '1' : '0').join('');
   const context = {
-    key: `synthetic-${team}-${scenario}`,
+    key: `synthetic-${team}-${amount}`,
     team,
     cohort,
-    scenario,
+    amount,
     combination
   };
 

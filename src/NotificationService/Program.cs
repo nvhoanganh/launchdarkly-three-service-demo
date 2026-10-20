@@ -26,6 +26,7 @@ app.MapGet("/health", () => Results.Ok(new
 }));
 
 app.MapPost("/process", ProcessJourney);
+app.MapGet("/logs", ApplicationLogs.Stream);
 
 async Task<IResult> ProcessJourney(JourneyRequest request, HttpClient httpClient, CancellationToken cancellationToken)
 {
@@ -40,7 +41,7 @@ async Task<IResult> ProcessJourney(JourneyRequest request, HttpClient httpClient
         .Kind("demo")
         .Set("team", request.Context.Team)
         .Set("cohort", request.Context.Cohort)
-        .Set("scenario", request.Context.Scenario)
+        .Set("amount", (double)request.Context.Amount)
         .Set("combination", request.Context.Combination)
         .Build();
 
@@ -62,6 +63,12 @@ async Task<IResult> ProcessJourney(JourneyRequest request, HttpClient httpClient
         behavior = "Original generic payment receipt";
     }
 
+    ApplicationLogs.Write("NotificationService", request.RequestId,
+        $"AUD {request.Context.Amount} | notifications-v2 = {evaluation.Value} | {evaluation.Reason}");
+    app.Logger.LogInformation(
+        "Request {RequestId} | amount AUD {Amount} | flag {FlagKey} = {FlagValue} | reason {Reason}",
+        request.RequestId, request.Context.Amount, "notifications-v2", evaluation.Value, evaluation.Reason);
+
     request.Trace.Add(new ServiceDecision(
         "NotificationService",
         "notifications-v2",
@@ -77,9 +84,10 @@ async Task<IResult> ProcessJourney(JourneyRequest request, HttpClient httpClient
     bool newRisk = request.Trace.Any(step => step.Service == "RiskService" && step.IsV2);
     if (oldPayment && newRisk && useNotificationV2)
     {
+        ApplicationLogs.Write("NotificationService", request.RequestId, "Compatibility error: Payment V1 + Risk V2 + Notification V2; HTTP 500.", "error");
         request.Error = "Demo compatibility error: Risk V2 + Notification V2 require Payment V2. Enable Payment V2 or roll back Risk or Notification.";
         request.Data.Notification = "Receipt not sent: incompatible service combination.";
-        return Results.Json(request, statusCode: 422);
+        return Results.Json(request, statusCode: 500);
     }
 
     return Results.Ok(request);

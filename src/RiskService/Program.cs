@@ -26,6 +26,7 @@ app.MapGet("/health", () => Results.Ok(new
 }));
 
 app.MapPost("/process", ProcessJourney);
+app.MapGet("/logs", ApplicationLogs.Stream);
 
 async Task<IResult> ProcessJourney(JourneyRequest request, HttpClient httpClient, CancellationToken cancellationToken)
 {
@@ -40,7 +41,7 @@ async Task<IResult> ProcessJourney(JourneyRequest request, HttpClient httpClient
         .Kind("demo")
         .Set("team", request.Context.Team)
         .Set("cohort", request.Context.Cohort)
-        .Set("scenario", request.Context.Scenario)
+        .Set("amount", (double)request.Context.Amount)
         .Set("combination", request.Context.Combination)
         .Build();
 
@@ -64,6 +65,12 @@ async Task<IResult> ProcessJourney(JourneyRequest request, HttpClient httpClient
         behavior = "Original approval policy";
     }
 
+    ApplicationLogs.Write("RiskService", request.RequestId,
+        $"AUD {request.Context.Amount} | risk-v2 = {evaluation.Value} | {evaluation.Reason}");
+    app.Logger.LogInformation(
+        "Request {RequestId} | amount AUD {Amount} | flag {FlagKey} = {FlagValue} | reason {Reason}",
+        request.RequestId, request.Context.Amount, "risk-v2", evaluation.Value, evaluation.Reason);
+
     request.Trace.Add(new ServiceDecision(
         "RiskService",
         "risk-v2",
@@ -80,6 +87,11 @@ async Task<IResult> ProcessJourney(JourneyRequest request, HttpClient httpClient
             "http://127.0.0.1:4313/process", request, cancellationToken);
 
         // Preserve downstream status and diagnostics, including compatibility failures.
+        if (!response.IsSuccessStatusCode)
+        {
+            ApplicationLogs.Write("RiskService", request.RequestId,
+                $"Downstream request failed: HTTP {(int)response.StatusCode}.", "error");
+        }
         string body = await response.Content.ReadAsStringAsync(cancellationToken);
         return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
     }

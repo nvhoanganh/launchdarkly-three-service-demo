@@ -13,7 +13,7 @@ const rows = await Promise.all(Array.from({length: 8}, async (_, number) => {
     body: JSON.stringify({paymentsV2: requested[0] === '1', riskV2: requested[1] === '1', notificationsV2: requested[2] === '1'})
   });
   const result = await response.json();
-  if (requested === '011' && response.status === 422 && result.error?.startsWith('Demo compatibility error:') && result.trace.map(step => step.isV2 ? '1' : '0').join('') === '011' && !result.trace.some(step => step.reason.includes('ERROR'))) {
+  if (requested === '011' && response.status === 500 && result.error?.startsWith('Demo compatibility error:') && result.trace.map(step => step.isV2 ? '1' : '0').join('') === '011' && !result.trace.some(step => step.reason.includes('ERROR'))) {
     return {requested, actual: '011', status: 'EXPECTED COMPATIBILITY ERROR'};
   }
   if (!response.ok) {failed = true; return {requested, actual: 'ERROR', status: 'FAIL'};}

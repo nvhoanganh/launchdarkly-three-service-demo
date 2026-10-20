@@ -13,31 +13,31 @@ before(async () => {
   assert.equal(new Set(health.map(service => service.processId)).size, 3);
 });
 
-function options(bits, scenario = 'high-value', team = 'payments', cohort = 'test') {
-  return {paymentsV2: bits[0] === '1', riskV2: bits[1] === '1', notificationsV2: bits[2] === '1', scenario, team, cohort};
+function options(bits, amount = 1250, team = 'payments', cohort = 'test') {
+  return {paymentsV2: bits[0] === '1', riskV2: bits[1] === '1', notificationsV2: bits[2] === '1', amount, team, cohort};
 }
-async function run(bits, scenario, team, cohort) {
+async function run(bits, amount, team, cohort) {
   const response = await fetch('http://127.0.0.1:4310/api/demo', {
-    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(options(bits, scenario, team, cohort))
+    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(options(bits, amount, team, cohort))
   });
-  assert.equal(response.status, bits === '011' && cohort !== 'rollback' ? 422 : 200);
+  assert.equal(response.status, bits === '011' && cohort !== 'rollback' ? 500 : 200);
   const result = await response.json();
   assert(!result.trace.some(step => step.reason.includes('ERROR')), 'SDK evaluation returned a fallback error.');
   return result;
 }
 const actual = result => result.trace.map(step => step.isV2 ? '1' : '0').join('');
 
-test('all eight combinations across both payment scenarios cross three real .NET HTTP services', async () => {
-  for (const scenario of ['standard', 'high-value']) {
+test('all eight combinations across six payment amounts cross three real .NET HTTP services', async () => {
+  for (const amount of [50, 500, 999, 1000, 1250, 5000]) {
     await Promise.all(Array.from({length: 8}, async (_, number) => {
       const bits = number.toString(2).padStart(3, '0');
-      const result = await run(bits, scenario);
+      const result = await run(bits, amount);
       assert.equal(actual(result), bits);
       assert.deepEqual(result.trace.map(step => step.service), expectedServices);
       assert.deepEqual(result.trace.map(step => step.flagKey), ['payments-v2', 'risk-v2', 'notifications-v2']);
       assert.equal(new Set(result.trace.map(step => step.processId)).size, 3);
       result.trace.forEach(step => assert.deepEqual(step.context, result.context));
-      assert.equal(result.data.riskDecision, bits[1] === '1' && scenario === 'high-value' ? 'review' : 'approve');
+      assert.equal(result.data.riskDecision, bits[1] === '1' && amount >= 1000 ? 'review' : 'approve');
       const standardFee = result.data.amount * 0.02;
       const discount = bits[0] === '1' ? standardFee * 0.5 : 0;
       const fee = standardFee - discount;
@@ -59,7 +59,7 @@ test('all eight combinations across both payment scenarios cross three real .NET
 test('60 concurrent team requests keep their context and combination isolated', async () => {
   await Promise.all(Array.from({length: 60}, async (_, index) => {
     const [team, bits] = [['payments', '100'], ['risk', '110'], ['notifications', '111']][index % 3];
-    const result = await run(bits, 'high-value', team);
+    const result = await run(bits, 1250, team);
     assert.equal(actual(result), bits);
     assert.equal(result.context.team, team);
     result.trace.forEach(step => assert.deepEqual(step.context, result.context));
@@ -67,8 +67,8 @@ test('60 concurrent team requests keep their context and combination isolated', 
 });
 
 test('rollback cohort returns baseline without restarting service binaries', async () => {
-  const released = await run('111', 'high-value', 'payments', 'release');
-  const rollback = await run('111', 'high-value', 'payments', 'rollback');
+  const released = await run('111', 1250, 'payments', 'release');
+  const rollback = await run('111', 1250, 'payments', 'rollback');
   assert.equal(actual(released), '111');
   assert.equal(actual(rollback), '000');
   assert.equal(released.context.key, rollback.context.key);
@@ -83,7 +83,7 @@ test('UI rejects invalid toggles and each .NET boundary rejects invalid syntheti
   for (const port of [4311, 4312, 4313]) {
     const rejected = await fetch(`http://127.0.0.1:${port}/process`, {
       method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({context: {key: 'real-user', team: 'payments', scenario: 'high-value', cohort: 'test', combination: '111'}})
+      body: JSON.stringify({context: {key: 'real-user', team: 'payments', amount: 1250, cohort: 'test', combination: '111'}})
     });
     assert.equal(rejected.status, 400);
   }
@@ -101,4 +101,55 @@ test('curl header profiles remain explicit and independently evaluable', async (
   const result = await response.json();
   assert.equal(actual(result), '110');
   assert.deepEqual(result.trace.map(step => step.flagKey), ['payments-v2', 'risk-v2', 'notifications-v2']);
+});
+
+test('invalid monetary amounts are rejected by Express and every service boundary', async () => {
+  for (const amount of [0, -1, 1000001, 1.234, '1250']) {
+    const response = await fetch('http://127.0.0.1:4310/api/demo', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({...options('000'), amount})
+    });
+    assert.equal(response.status, 400);
+  }
+  for (const port of [4311, 4312, 4313]) {
+    const response = await fetch(`http://127.0.0.1:${port}/process`, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({context: {key: 'synthetic-invalid', team: 'payments', amount: -1, cohort: 'test', combination: '000'}, data: {}, trace: []})
+    });
+    assert.equal(response.status, 400);
+  }
+});
+
+test('SSE streams real request logs for each service and rejects unknown services', async () => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+  try {
+    const streams = await Promise.all(['payment', 'risk', 'notification'].map(async service => {
+      const response = await fetch(`http://127.0.0.1:4310/api/logs/${service}`, {signal: controller.signal});
+      assert.equal(response.status, 200);
+      assert.match(response.headers.get('content-type'), /text\/event-stream/);
+      const reader = response.body.getReader();
+      const event = (async () => {
+        let text = '';
+        while (true) {
+          const {value, done} = await reader.read();
+          if (done) throw new Error('SSE ended before a log arrived');
+          text += new TextDecoder().decode(value);
+          const match = text.match(/data: (.+)\n\n/);
+          if (match) return JSON.parse(match[1]);
+        }
+      })();
+      return {reader, event};
+    }));
+    const result = await run('110', 1250);
+    const events = await Promise.all(streams.map(stream => stream.event));
+    assert.deepEqual(events.map(event => event.service), expectedServices);
+    for (const event of events) {
+      assert.equal(event.requestId, result.requestId);
+      assert.match(event.message, /AUD 1250/);
+      assert.match(event.message, /v2 = (True|False)/);
+    }
+    await Promise.all(streams.map(stream => stream.reader.cancel()));
+    assert.equal((await fetch('http://127.0.0.1:4310/api/logs/unknown')).status, 404);
+  } finally { clearTimeout(timeout); controller.abort(); }
 });

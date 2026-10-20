@@ -11,7 +11,7 @@ function resultFor(bits, scenario = 'high-value', cohort = 'test') {
   const total = amount + fee;
   const decision = actual[1] === '1' && amount >= 1000 ? 'review' : 'approve';
   return {
-    context: {combination: bits, scenario, cohort},
+    context: {combination: bits, amount, cohort},
     trace: [...actual].map(bit => ({isV2: bit === '1', reason: 'RULE_MATCH'})),
     data: {
       amount, standardFee, feeDiscount: discount, fee, total, currency: 'AUD',

@@ -1,5 +1,5 @@
 import {resetRoute, replayRoute, failRoute} from './route.mjs';
-import {scenarios, verifyResult} from './coverage.mjs';
+import {scenarios as combinations, verifyResult} from './coverage.mjs';
 const toggles = ['payments', 'risk', 'notifications'].map(id => document.getElementById(id));
 const byId = id => document.getElementById(id);
 const money = value => `AUD ${Number(value).toFixed(2)}`;
@@ -10,17 +10,25 @@ const hasSdkError = result => result.trace.some(step => step.reason.includes('ER
 function selection(bits = selectedBits()) {
   return {
     paymentsV2: bits[0] === '1', riskV2: bits[1] === '1', notificationsV2: bits[2] === '1',
-    scenario: byId('scenario').value, cohort: byId('cohort').value
+    amount: Number(byId('amount').value), cohort: byId('cohort').value
   };
+}
+
+function renderContextPreview() {
+  const {amount, cohort} = selection();
+  byId('context').textContent = JSON.stringify({
+    kind: 'demo', key: `synthetic-payments-${amount}`, team: 'payments',
+    cohort, amount, combination: selectedBits()
+  }, null, 2);
 }
 
 const evidence = new Map();
 let highlightedScenario = '';
-const scopeKey = context => [context.scenario, context.cohort].join('|');
+const scopeKey = context => [context.amount, context.cohort].join('|');
 const currentScope = () => scopeKey(selection());
 function renderCoverage() {
-  byId('coverage-scope').textContent = `${byId('scenario').selectedOptions[0].text} · ${byId('cohort').selectedOptions[0].text}`;
-  byId('matrix-results').innerHTML = scenarios.map(([bits, description]) => {
+  byId('coverage-scope').textContent = `${byId('amount').selectedOptions[0].text} · ${byId('cohort').selectedOptions[0].text}`;
+  byId('matrix-results').innerHTML = combinations.map(([bits, description]) => {
     const saved = evidence.get(bits);
     const actual = saved?.result?.trace;
     const cells = [0, 1, 2].map(index => {
@@ -41,8 +49,9 @@ function remember(result) {
   highlightedScenario = result.context.combination;
   renderCoverage();
 }
-for (const id of ['scenario', 'cohort']) {
+for (const id of ['amount', 'cohort']) {
   byId(id).addEventListener('change', () => {
+    renderContextPreview();
     evidence.clear();
     highlightedScenario = '';
     renderCoverage();
@@ -50,6 +59,7 @@ for (const id of ['scenario', 'cohort']) {
 }
 renderCoverage();
 resetRoute();
+renderContextPreview();
 
 async function send(options) {
   const response = await fetch('/api/demo', {
@@ -61,53 +71,31 @@ async function send(options) {
 }
 
 function render(result) {
-  byId('error').hidden = !result.error;
-  byId('error').textContent = result.error || '';
   const requested = result.context.combination;
   const observed = actualBits(result);
   const expected = result.context.cohort === 'rollback' ? '000' : requested;
-  byId('observed').textContent = `Actual ${observed} · ${hasSdkError(result) ? 'SDK fallback' : observed === expected ? 'matches context' : 'differs from request'}`;
-  byId('results').innerHTML = result.trace.map((step, index) => `
-    <article class="service ${step.isV2 ? 'v2' : 'baseline'} ${Number(step.isV2) !== Number(expected[index]) ? 'mismatch' : ''}">
-      <span class="service-title">${escape(step.service)}</span>
-      <div class="version">${step.isV2 ? 'V2' : 'Default'}<small>${step.isV2 ? 'New logic ran' : 'Baseline logic ran'}</small></div>
-      <p>${escape(step.behavior)}</p><code>${escape(step.flagKey)} = ${step.isV2}</code>
-      <small>Process ${step.processId} · ${escape(step.reason)}</small>
-    </article>`).join('');
-  byId('payment-amount').textContent = money(result.data.amount);
-  byId('payment-fee').textContent = money(result.data.fee);
-  byId('payment-savings').textContent = money(result.data.feeDiscount);
-  byId('payment-total').textContent = money(result.data.total);
-  byId('fee-comparison').textContent = result.data.feeDiscount > 0
-    ? `Payment V2: 50% off the ${money(result.data.standardFee)} standard fee. Total falls from ${money(result.data.amount + result.data.standardFee)} to ${money(result.data.total)}.`
-    : `Payment V1: standard 2% fee of ${money(result.data.standardFee)}. No fee discount applied.`;
-  byId('outcome').textContent = result.error || result.data.notification;
-  byId('outcome-detail').textContent = `Risk: ${result.data.riskDecision} · ${result.data.riskPolicy}`;
-  byId('context').textContent = JSON.stringify({kind: 'demo', ...result.context}, null, 2);
+  renderContextPreview();
   byId('response').textContent = JSON.stringify(result, null, 2);
   remember(result);
 }
 
 async function busy(button, action) {
   button.disabled = true;
-  byId('error').hidden = true;
   try { await action(); }
-  catch (error) { byId('error').textContent = error.message; byId('error').hidden = false; }
+  catch (error) { failRoute(error.message); }
   finally { button.disabled = false; }
 }
 
-toggles.forEach(toggle => toggle.addEventListener('change', () => {byId('combination').textContent = selectedBits();}));
-document.querySelectorAll('[data-bits]').forEach(button => button.addEventListener('click', () => {
-  toggles.forEach((toggle, index) => {toggle.checked = button.dataset.bits[index] === '1';});
-  renderCoverage();
-  byId('combination').textContent = selectedBits();
-}));
+toggles.forEach(toggle => toggle.addEventListener('change', () => {renderContextPreview();}));
 byId('demo-form').addEventListener('submit', event => {
   event.preventDefault();
   busy(byId('submit'), async () => {
+    const request = selection();
     resetRoute(true);
+    byId('response').textContent = 'Waiting for response…';
     try {
-      const result = await send(selection());
+      await new Promise(resolve => setTimeout(resolve, 200));
+      const result = await send(request);
       await replayRoute(result);
       render(result);
     } catch (error) {
@@ -122,9 +110,9 @@ byId('matrix').addEventListener('click', () => busy(byId('matrix'), async () => 
   evidence.clear();
   highlightedScenario = '';
   renderCoverage();
-  await Promise.all(scenarios.map(async ([requested]) => {
+  await Promise.all(combinations.map(async ([requested]) => {
     try {
-      const result = await send({...selection(requested), scenario: scope.scenario, cohort: scope.cohort});
+      const result = await send({...selection(requested), amount: scope.amount, cohort: scope.cohort});
       if (currentScope() === startedScope) {
         evidence.set(requested, {result, verification: verifyResult(result)});
         renderCoverage();
