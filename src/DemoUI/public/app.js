@@ -6,6 +6,7 @@ const money = value => `AUD ${Number(value).toFixed(2)}`;
 const escape = value => String(value).replace(/[&<>"']/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
 let runtime = {environment: 'unknown', contextKind: 'unknown'};
 let syntheticUserKey = null;
+const presetBits = new Set(['100', '010', '001', '000']);
 const selectedBits = () => toggles.map(toggle => toggle.checked ? '1' : '0').join('');
 const actualBits = result => result.trace.map(step => step.isV2 ? '1' : '0').join('');
 const hasSdkError = result => result.trace.some(step => step.reason.includes('ERROR'));
@@ -19,6 +20,8 @@ function selection(bits = selectedBits()) {
 
 function renderContextPreview() {
   const {amount} = selection();
+  const bits = selectedBits();
+  byId('tester-preset').value = presetBits.has(bits) ? bits : 'custom';
   const key = runtime.environment === 'prod' && syntheticUserKey ? syntheticUserKey : `synthetic-payments-${amount}`;
   byId('current-user-id').textContent = key;
   byId('context').textContent = JSON.stringify({
@@ -91,6 +94,20 @@ async function busy(button, action) {
   finally { button.disabled = false; }
 }
 
+// Preserve selections; toggling either section only closes the other section.
+for (const [opened, other] of [['test-presets', 'test-harness'], ['test-harness', 'test-presets']]) {
+  byId(opened).addEventListener('toggle', () => {
+    if (byId(opened).open) byId(other).open = false;
+  });
+}
+
+byId('tester-preset').addEventListener('change', () => {
+  const bits = byId('tester-preset').value;
+  if (!presetBits.has(bits)) return;
+  toggles.forEach((toggle, index) => { toggle.checked = bits[index] === '1'; });
+  renderContextPreview();
+});
+
 toggles.forEach(toggle => toggle.addEventListener('change', () => {renderContextPreview();}));
 byId('demo-form').addEventListener('submit', event => {
   event.preventDefault();
@@ -154,7 +171,7 @@ try {
   runtime = await response.json();
   byId('environment').textContent = runtime.environment === 'prod' ? 'Prod' : runtime.environment === 'test' ? 'Test' : 'Unknown';
   byId('prod-controls').hidden = runtime.environment !== 'prod';
-  for (const id of ['test-harness', 'test-coverage', 'toggle-explanation']) {
+  for (const id of ['test-presets', 'test-harness', 'test-coverage', 'toggle-explanation']) {
     byId(id).hidden = runtime.environment !== 'test';
   }
   if (runtime.environment === 'prod') syntheticUserKey = `synthetic-ui-${crypto.randomUUID()}`;

@@ -227,8 +227,10 @@ preview shows context kind `user`; returned context/trace shows the actual stabl
 The full current user ID remains visible beside the controls. In Prod, **Randomize user** chooses a fresh synthetic key, stable until clicked again.
 Submit to see the actual evaluated V1/OFF, V2/ON, or mixed result. Randomizing never forces
 ON. Test retains its original stable coverage identities and all eight combinations.
-In Test, expand the collapsed **Test Harness** accordion inside Web UI to choose toggles;
-it is hidden in Prod. Amount, Submit payment and the current user ID stay in Web UI.
+In Test, select Payment Tester (100), Risk Tester (010), Notification Tester (001), or
+Customer (000) above the collapsed **Combination Testing** accordion inside Web UI.
+Expand it to edit toggles manually; other combinations display Custom combination.
+Opening either accordion collapses the other without changing selections. Both are hidden in Prod. Amount, Submit payment and the current user ID stay in Web UI.
 
 ### k6 from fish (run manually)
 

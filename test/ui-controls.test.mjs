@@ -8,11 +8,15 @@ test('single controls, accessible external toggles, no cohort dropdown',()=>{
  const ids=[...html.matchAll(/id="([^"]+)"/g)].map(m=>m[1]);
  assert.equal(new Set(ids).size,ids.length);
  assert.ok(!ids.includes('cohort'));
- assert.match(html,/<details id="test-harness" class="test-harness" hidden>/);
+ assert.match(html,/<details id="test-harness" class="test-harness" name="test-controls" hidden>/);
  assert.doesNotMatch(html,/<details[^>]*id="test-harness"[^>]*\bopen\b/);
- assert.match(html,/<summary>Test Harness<\/summary>/);
+ assert.match(html,/<summary>Combination Testing<\/summary>/);
+ assert.match(html,/<details id="test-presets"[^>]*name="test-controls"[^>]*open hidden>/);
  assert.ok(html.indexOf('id="test-harness"') > html.indexOf('id="web-ui-controls"'));
  assert.ok(html.indexOf('id="test-harness"') < html.indexOf('</form>'));
+ assert.ok(html.indexOf('id="test-presets"') < html.indexOf('id="test-harness"'));
+ assert.doesNotMatch(html,/<label[^>]*for="tester-preset"/);
+ assert.match(html,/<select id="tester-preset" aria-label="Test preset"/);
  assert.doesNotMatch(html,/<aside/);
  assert.equal([...html.matchAll(/role="switch" form="demo-form"/g)].length,3);
  assert.match(html,/<div id="web-ui-controls"><form id="demo-form">/);
@@ -30,6 +34,27 @@ for(const environment of ['test','prod']) test(`${environment} controls follow s
  }};
  await vm.runInNewContext(`(async()=>{${source}})()`,context);
  assert.equal(elements.get('test-harness').hidden,environment!=='test');
+ assert.equal(elements.get('test-presets').hidden,environment!=='test');
+ assert.equal(elements.get('tester-preset').value,'000');
+ if(environment==='test') {
+  for(const bits of ['100','010','001','000']) {
+   elements.get('tester-preset').value=bits;elements.get('tester-preset').listeners.change();
+   assert.equal(['payments','risk','notifications'].map(id=>elements.get(id).checked?'1':'0').join(''),bits);
+  }
+  elements.get('payments').checked=true;elements.get('risk').checked=true;
+  elements.get('risk').listeners.change();
+  assert.equal(elements.get('tester-preset').value,'custom');
+  assert.equal(elements.get('payments').checked,true);assert.equal(elements.get('risk').checked,true);
+  elements.get('test-presets').open=true;
+  elements.get('test-harness').open=true;elements.get('test-harness').listeners.toggle();
+  assert.equal(elements.get('test-presets').open,false);
+  elements.get('test-presets').open=true;elements.get('test-presets').listeners.toggle();
+  assert.equal(elements.get('test-harness').open,false);
+  assert.equal(elements.get('tester-preset').value,'custom');
+  assert.equal(elements.get('payments').checked,true);assert.equal(elements.get('risk').checked,true);
+  const preview=JSON.parse(elements.get('context').textContent);assert.equal(preview.combination,'110');
+  assert.deepEqual(Object.keys(preview).sort(),['amount','combination','key','kind']);
+ }
  assert.equal(elements.get('test-coverage').hidden,environment!=='test');
  assert.equal(elements.get('prod-controls').hidden,environment!=='prod');
  if(environment==='prod')elements.get('randomize-user').listeners.click();

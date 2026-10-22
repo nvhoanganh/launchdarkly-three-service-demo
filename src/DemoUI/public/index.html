@@ -16,8 +16,19 @@
         <section class="route-panel" aria-label="Request journey">
           <div class="route-heading"><strong>Follow the request</strong><span id="route-status" role="status">Submit a payment to follow its journey.</span></div>
           <div class="route-scroll"><div id="route-flow" class="route-flow"><div id="web-ui-controls"><form id="demo-form">
-      <details id="test-harness" class="test-harness" hidden>
-        <summary>Test Harness</summary>
+      <details id="test-presets" class="selection" name="test-controls" open hidden>
+        <summary>Test Preset</summary>
+        <select id="tester-preset" aria-label="Test preset" aria-describedby="preset-help">
+          <option value="100">Payment Tester</option>
+          <option value="010">Risk Tester</option>
+          <option value="001">Notification Tester</option>
+          <option value="000" selected>Customer</option>
+          <option value="custom" disabled>Custom combination</option>
+        </select>
+        <p id="preset-help" class="quiet">Presets set requested toggles. Expand Combination Testing to edit them.</p>
+      </details>
+      <details id="test-harness" class="test-harness" name="test-controls" hidden>
+        <summary>Combination Testing</summary>
         <p class="quiet">Toggle the requested versions. Each service evaluates its own flag.</p>
           <label class="toggle-row"><span><strong>Payment V2</strong><code>payments-v2</code></span><input id="payments" type="checkbox" role="switch" form="demo-form"><span class="switch" aria-hidden="true"></span></label>
           <label class="toggle-row"><span><strong>Risk V2</strong><code>risk-v2</code></span><input id="risk" type="checkbox" role="switch" form="demo-form"><span class="switch" aria-hidden="true"></span></label>

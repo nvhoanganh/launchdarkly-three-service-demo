@@ -67,3 +67,6 @@ main{max-width:none;width:100%;padding-left:24px;padding-right:24px}
 .test-harness summary{font-size:14px;font-weight:700}
 .test-harness .toggle-row{padding:12px 0}
 .test-harness .toggle-row strong{font-size:13px}
+
+#test-presets > summary, #test-harness > summary{font-size:14px;font-weight:700;line-height:1.5;letter-spacing:normal}
+#tester-preset{margin-top:10px}
