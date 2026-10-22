@@ -1,17 +1,23 @@
+using LaunchDarkly.Sdk;
+
 namespace NotificationService;
 
 // This small HTTP contract is deliberately duplicated so each project can build independently.
 public sealed record DemoContext(
     string Key,
-    string Team,
-    string Cohort,
     decimal Amount,
     string Combination)
 {
+    public string Kind => "user";
+
+    public Context ToLaunchDarklyContext() => Context.Builder(Key)
+        .Kind("user")
+        .Set("amount", (double)Amount)
+        .Set("combination", Combination)
+        .Build();
+
     public bool IsValid() =>
         !string.IsNullOrWhiteSpace(Key) && Key.StartsWith("synthetic-") && Key.Length <= 100 &&
-        new[] { "payments", "risk", "notifications" }.Contains(Team) &&
-        new[] { "test", "release", "rollback" }.Contains(Cohort) &&
         Amount > 0m && Amount <= 1000000m && decimal.Round(Amount, 2) == Amount &&
         Combination is { Length: 3 } && Combination.All(bit => bit is '0' or '1');
 }
@@ -20,7 +26,7 @@ public sealed class JourneyRequest
 {
     public string? Error { get; set; }
     public string RequestId { get; set; } = Guid.NewGuid().ToString();
-    public DemoContext Context { get; set; } = new("synthetic-default", "payments", "test", 1250m, "000");
+    public DemoContext Context { get; set; } = new("synthetic-default", 1250m, "000");
     public JourneyData Data { get; set; } = new();
     public List<ServiceDecision> Trace { get; set; } = [];
 }

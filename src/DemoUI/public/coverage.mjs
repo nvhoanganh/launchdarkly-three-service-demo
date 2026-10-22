@@ -12,7 +12,7 @@ export const scenarios = [
 // Verify evaluated flags AND business outputs. Requested bits alone are not evidence.
 export function verifyResult(result) {
   const observed = result.trace.map(step => step.isV2 ? '1' : '0').join('');
-  const expected = result.context.cohort === 'rollback' ? '000' : result.context.combination;
+  const expected = result.context.combination;
   const errors = [];
   if (result.error) errors.push(result.error);
   if (observed !== expected) errors.push(`Expected ${expected}; evaluated ${observed}`);

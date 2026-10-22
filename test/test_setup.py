@@ -99,13 +99,12 @@ class SetupTests(unittest.TestCase):
             self.assertEqual(flag['environments']['test']['rules'], [])
             for n in range(8):
                 bits = format(n, '03b')
-                for cohort in ['test', 'release', 'rollback', 'unknown']:
-                    attrs = {'combination': bits, 'cohort': cohort}
-                    variation = 1
-                    for rule in flag['environments']['production']['rules']:
-                        if all(c['contextKind'] == 'demo' and c['op'] == 'in' and not c['negate'] and attrs[c['attribute']] in c['values'] for c in rule['clauses']):
-                            variation = rule['variation']; break
-                    self.assertEqual(variation == 0, cohort in ['test', 'release'] and bits[index] == '1')
+                attrs = {'combination': bits}
+                variation = 1
+                for rule in flag['environments']['production']['rules']:
+                    if all(c['contextKind'] == 'user' and c['op'] == 'in' and not c['negate'] and attrs[c['attribute']] in c['values'] for c in rule['clauses']):
+                        variation = rule['variation']; break
+                self.assertEqual(variation == 0, bits[index] == '1')
         self.assertTrue(all('/default' not in p and (m == 'GET' or p.startswith('/flags/launch-darkly-demo')) for m, p, _ in mock.calls))
 
     def test_existing_project_never_mutated(self):

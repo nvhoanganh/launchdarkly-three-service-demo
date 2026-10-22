@@ -21,42 +21,15 @@ app.MapGet("/health", () => Results.Ok(new
 {
     service = "PaymentService",
     mode = "live",
+    environment = DemoFailurePolicy.EnvironmentName(builder.Configuration["ENV"]),
+    failureRate = 0.2,
+    contextKind = "user",
     sdkReady = launchDarklyClient.Initialized,
     processId = Environment.ProcessId
 }));
 
 app.MapPost("/process", ProcessJourney);
 app.MapGet("/logs", ApplicationLogs.Stream);
-
-// Curl-friendly profiles use the same HTTP journey as the UI.
-app.MapGet("/demo", async (HttpRequest httpRequest, HttpClient httpClient, CancellationToken cancellationToken) =>
-{
-    string user = httpRequest.Headers["X-Demo-User"].FirstOrDefault() ?? "baseline";
-    var profile = user switch
-    {
-        "baseline" => (Team: "payments", Combination: "000", Cohort: "test"),
-        "team-payments" => (Team: "payments", Combination: "100", Cohort: "test"),
-        "team-risk" => (Team: "risk", Combination: "110", Cohort: "test"),
-        "team-notifications" => (Team: "notifications", Combination: "111", Cohort: "test"),
-        "released" => (Team: "payments", Combination: "111", Cohort: "release"),
-        "rollback" => (Team: "payments", Combination: "111", Cohort: "rollback"),
-        _ => (Team: "", Combination: "", Cohort: "")
-    };
-
-    if (profile.Team == "")
-    {
-        return Results.BadRequest(new { error = "Unknown synthetic X-Demo-User profile." });
-    }
-
-    var request = new JourneyRequest
-    {
-        Context = new DemoContext(
-            $"synthetic-{user}", profile.Team, profile.Cohort, 1250m, profile.Combination)
-    };
-
-    return await ProcessJourney(request, httpClient, cancellationToken);
-});
-
 
 async Task<IResult> ProcessJourney(JourneyRequest request, HttpClient httpClient, CancellationToken cancellationToken)
 {
@@ -67,14 +40,29 @@ async Task<IResult> ProcessJourney(JourneyRequest request, HttpClient httpClient
 
     // Every service reconstructs the SAME LaunchDarkly context from the HTTP request.
     // Combination is a targeting attribute; it never overrides a live flag value.
-    var context = Context.Builder(request.Context.Key)
-        .Kind("demo")
-        .Set("team", request.Context.Team)
-        .Set("cohort", request.Context.Cohort)
-        .Set("amount", (double)request.Context.Amount)
-        .Set("combination", request.Context.Combination)
-        .Build();
+    var context = request.Context.ToLaunchDarklyContext();
 
+    // One pair of measurements per valid journey, including downstream failures.
+    return await JourneyMetrics.Measure(
+        () => ProcessJourneyCore(request, httpClient, cancellationToken, context),
+        (error, durationMs) =>
+        {
+            try
+            {
+                launchDarklyClient.Track("payment-journey-error", context, LdValue.Null, error);
+                launchDarklyClient.Track("payment-journey-duration-ms", context, LdValue.Null, durationMs);
+            }
+            catch (Exception)
+            {
+                // Telemetry must never replace the journey's result or exception.
+                app.Logger.LogWarning("Unable to enqueue journey guardrail measurements.");
+            }
+        });
+}
+
+async Task<IResult> ProcessJourneyCore(JourneyRequest request, HttpClient httpClient,
+    CancellationToken cancellationToken, Context context)
+{
     // This team owns this flag. Evaluate it for the request's context.
     var evaluation = launchDarklyClient.BoolVariationDetail("payments-v2", context, false);
     bool usePaymentV2 = evaluation.Value;
@@ -129,6 +117,20 @@ async Task<IResult> ProcessJourney(JourneyRequest request, HttpClient httpClient
                 $"Downstream request failed: HTTP {(int)response.StatusCode}.", "error");
         }
         string body = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (response.IsSuccessStatusCode)
+        {
+            var completed = System.Text.Json.JsonSerializer.Deserialize<JourneyRequest>(body,
+                new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+            bool candidate = completed?.Trace.Count == 3 && completed.Trace.All(step => step.IsV2);
+            if (completed is not null && DemoFailurePolicy.ShouldInject(
+                builder.Configuration["ENV"],
+                candidate, Random.Shared.NextDouble()))
+            {
+                completed.Error = "Synthetic demo fault: injected HTTP 500 (20% Prod V2 policy). No real payment was made.";
+                ApplicationLogs.Write("PaymentService", request.RequestId, completed.Error, "error");
+                return Results.Json(completed, statusCode: 500);
+            }
+        }
         return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
     }
     catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException)

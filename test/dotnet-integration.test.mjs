@@ -13,14 +13,14 @@ before(async () => {
   assert.equal(new Set(health.map(service => service.processId)).size, 3);
 });
 
-function options(bits, amount = 1250, team = 'payments', cohort = 'test') {
-  return {paymentsV2: bits[0] === '1', riskV2: bits[1] === '1', notificationsV2: bits[2] === '1', amount, team, cohort};
+function options(bits, amount = 1250) {
+  return {paymentsV2: bits[0] === '1', riskV2: bits[1] === '1', notificationsV2: bits[2] === '1', amount};
 }
-async function run(bits, amount, team, cohort) {
+async function run(bits, amount) {
   const response = await fetch('http://127.0.0.1:4310/api/demo', {
-    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(options(bits, amount, team, cohort))
+    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(options(bits, amount))
   });
-  assert.equal(response.status, bits === '011' && cohort !== 'rollback' ? 500 : 200);
+  assert.equal(response.status, bits === '011' ? 500 : 200);
   const result = await response.json();
   assert(!result.trace.some(step => step.reason.includes('ERROR')), 'SDK evaluation returned a fallback error.');
   return result;
@@ -56,23 +56,13 @@ test('all eight combinations across six payment amounts cross three real .NET HT
   }
 });
 
-test('60 concurrent team requests keep their context and combination isolated', async () => {
+test('60 concurrent requests keep their context and combination isolated', async () => {
   await Promise.all(Array.from({length: 60}, async (_, index) => {
-    const [team, bits] = [['payments', '100'], ['risk', '110'], ['notifications', '111']][index % 3];
-    const result = await run(bits, 1250, team);
+    const bits = ['100', '110', '111'][index % 3];
+    const result = await run(bits, 1250);
     assert.equal(actual(result), bits);
-    assert.equal(result.context.team, team);
     result.trace.forEach(step => assert.deepEqual(step.context, result.context));
   }));
-});
-
-test('rollback cohort returns baseline without restarting service binaries', async () => {
-  const released = await run('111', 1250, 'payments', 'release');
-  const rollback = await run('111', 1250, 'payments', 'rollback');
-  assert.equal(actual(released), '111');
-  assert.equal(actual(rollback), '000');
-  assert.equal(released.context.key, rollback.context.key);
-  assert.deepEqual(released.trace.map(step => step.processId), rollback.trace.map(step => step.processId));
 });
 
 test('UI rejects invalid toggles and each .NET boundary rejects invalid synthetic context', async () => {
@@ -83,7 +73,7 @@ test('UI rejects invalid toggles and each .NET boundary rejects invalid syntheti
   for (const port of [4311, 4312, 4313]) {
     const rejected = await fetch(`http://127.0.0.1:${port}/process`, {
       method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({context: {key: 'real-user', team: 'payments', amount: 1250, cohort: 'test', combination: '111'}})
+      body: JSON.stringify({context: {key: 'real-user', amount: 1250, combination: '111'}})
     });
     assert.equal(rejected.status, 400);
   }
@@ -93,14 +83,6 @@ test('DemoUI serves its toggles frontend', async () => {
   const response = await fetch('http://127.0.0.1:4310/');
   assert.equal(response.status, 200);
   assert.match(await response.text(), /Notification V2/);
-});
-
-test('curl header profiles remain explicit and independently evaluable', async () => {
-  const response = await fetch('http://127.0.0.1:4311/demo', {headers: {'X-Demo-User': 'team-risk'}});
-  assert.equal(response.status, 200);
-  const result = await response.json();
-  assert.equal(actual(result), '110');
-  assert.deepEqual(result.trace.map(step => step.flagKey), ['payments-v2', 'risk-v2', 'notifications-v2']);
 });
 
 test('invalid monetary amounts are rejected by Express and every service boundary', async () => {
@@ -114,7 +96,7 @@ test('invalid monetary amounts are rejected by Express and every service boundar
   for (const port of [4311, 4312, 4313]) {
     const response = await fetch(`http://127.0.0.1:${port}/process`, {
       method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({context: {key: 'synthetic-invalid', team: 'payments', amount: -1, cohort: 'test', combination: '000'}, data: {}, trace: []})
+      body: JSON.stringify({context: {key: 'synthetic-invalid', amount: -1, combination: '000'}, data: {}, trace: []})
     });
     assert.equal(response.status, 400);
   }

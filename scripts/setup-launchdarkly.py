@@ -126,16 +126,12 @@ def diagnose():
     return 0
 
 def clause(attribute, values):
-    return {'contextKind': 'demo', 'attribute': attribute, 'op': 'in', 'negate': False, 'values': values}
+    return {'contextKind': 'user', 'attribute': attribute, 'op': 'in', 'negate': False, 'values': values}
 
 def rules(index):
     combinations = [format(n, '03b') for n in range(8) if format(n, '03b')[index] == '1']
-    return [
-        {'description': 'Rollback cohort stays baseline', 'variation': 1, 'trackEvents': False,
-         'clauses': [clause('cohort', ['rollback'])]},
-        {'description': 'Synthetic test and release combinations', 'variation': 0, 'trackEvents': False,
-         'clauses': [clause('cohort', ['test', 'release']), clause('combination', combinations)]}
-    ]
+    return [{'description': 'Synthetic combinations', 'variation': 0, 'trackEvents': False,
+             'clauses': [clause('combination', combinations)]}]
 
 def check_flag(flag, name):
     if flag.get('key') != name or [v.get('value') for v in flag.get('variations', [])] != [True, False] or any(type(v.get('value')) is not bool for v in flag.get('variations', [])):

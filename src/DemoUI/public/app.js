@@ -4,30 +4,35 @@ const toggles = ['payments', 'risk', 'notifications'].map(id => document.getElem
 const byId = id => document.getElementById(id);
 const money = value => `AUD ${Number(value).toFixed(2)}`;
 const escape = value => String(value).replace(/[&<>"']/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
+let runtime = {environment: 'unknown', contextKind: 'unknown'};
+let syntheticUserKey = null;
 const selectedBits = () => toggles.map(toggle => toggle.checked ? '1' : '0').join('');
 const actualBits = result => result.trace.map(step => step.isV2 ? '1' : '0').join('');
 const hasSdkError = result => result.trace.some(step => step.reason.includes('ERROR'));
 function selection(bits = selectedBits()) {
   return {
     paymentsV2: bits[0] === '1', riskV2: bits[1] === '1', notificationsV2: bits[2] === '1',
-    amount: Number(byId('amount').value), cohort: byId('cohort').value
+    amount: Number(byId('amount').value),
+    ...(runtime.environment === 'prod' && syntheticUserKey ? {userKey: syntheticUserKey} : {})
   };
 }
 
 function renderContextPreview() {
-  const {amount, cohort} = selection();
+  const {amount} = selection();
+  const key = runtime.environment === 'prod' && syntheticUserKey ? syntheticUserKey : `synthetic-payments-${amount}`;
+  byId('current-user-id').textContent = key;
   byId('context').textContent = JSON.stringify({
-    kind: 'demo', key: `synthetic-payments-${amount}`, team: 'payments',
-    cohort, amount, combination: selectedBits()
+    kind: runtime.contextKind, key,
+    amount, combination: selectedBits()
   }, null, 2);
 }
 
 const evidence = new Map();
 let highlightedScenario = '';
-const scopeKey = context => [context.amount, context.cohort].join('|');
+const scopeKey = context => String(context.amount);
 const currentScope = () => scopeKey(selection());
 function renderCoverage() {
-  byId('coverage-scope').textContent = `${byId('amount').selectedOptions[0].text} · ${byId('cohort').selectedOptions[0].text}`;
+  byId('coverage-scope').textContent = `${byId('amount').selectedOptions[0].text}`;
   byId('matrix-results').innerHTML = combinations.map(([bits, description]) => {
     const saved = evidence.get(bits);
     const actual = saved?.result?.trace;
@@ -49,7 +54,7 @@ function remember(result) {
   highlightedScenario = result.context.combination;
   renderCoverage();
 }
-for (const id of ['amount', 'cohort']) {
+for (const id of ['amount']) {
   byId(id).addEventListener('change', () => {
     renderContextPreview();
     evidence.clear();
@@ -73,8 +78,8 @@ async function send(options) {
 function render(result) {
   const requested = result.context.combination;
   const observed = actualBits(result);
-  const expected = result.context.cohort === 'rollback' ? '000' : requested;
-  renderContextPreview();
+  byId('context').textContent = JSON.stringify({kind: result.context.kind || runtime.contextKind, ...result.context}, null, 2);
+  byId('actual-cohort').textContent = hasSdkError(result) ? `SDK fallback/error · observed ${observed}` : observed === '111' ? 'Actual evaluated cohort: V2 / ON (111)' : observed === '000' ? 'Actual evaluated cohort: V1 / OFF (000)' : `Actual evaluated mixed versions: ${observed}`;
   byId('response').textContent = JSON.stringify(result, null, 2);
   remember(result);
 }
@@ -112,7 +117,7 @@ byId('matrix').addEventListener('click', () => busy(byId('matrix'), async () => 
   renderCoverage();
   await Promise.all(combinations.map(async ([requested]) => {
     try {
-      const result = await send({...selection(requested), amount: scope.amount, cohort: scope.cohort});
+      const result = await send({...selection(requested), amount: scope.amount});
       if (currentScope() === startedScope) {
         evidence.set(requested, {result, verification: verifyResult(result)});
         renderCoverage();
@@ -129,7 +134,7 @@ byId('matrix').addEventListener('click', () => busy(byId('matrix'), async () => 
 try {
   const response = await fetch('/api/health');
   const services = await response.json();
-  if (!response.ok && !result.trace) throw new Error(services.error);
+  if (!response.ok) throw new Error(services.error);
   const ready = services.every(service => service.sdkReady);
   byId('status').textContent = ready ? 'Live LaunchDarkly · all three SDKs initialized' : 'LaunchDarkly SDK not initialized';
   byId('status').classList.toggle('warning', !ready);
@@ -138,3 +143,20 @@ try {
   byId('status').textContent = error.message;
   byId('status').classList.add('warning');
 }
+
+byId('randomize-user').addEventListener('click', () => {
+  syntheticUserKey = `synthetic-ui-${crypto.randomUUID()}`;
+  evidence.clear(); highlightedScenario = ''; renderCoverage(); renderContextPreview();
+  byId('actual-cohort').textContent = 'New user selected; submit to see actual V1/V2 evaluations.';
+});
+try {
+  const response = await fetch('/api/config', {cache: 'no-store'});
+  runtime = await response.json();
+  byId('environment').textContent = runtime.environment === 'prod' ? 'Prod' : runtime.environment === 'test' ? 'Test' : 'Unknown';
+  byId('prod-controls').hidden = runtime.environment !== 'prod';
+  for (const id of ['test-harness', 'test-coverage', 'toggle-explanation']) {
+    byId(id).hidden = runtime.environment !== 'test';
+  }
+  if (runtime.environment === 'prod') syntheticUserKey = `synthetic-ui-${crypto.randomUUID()}`;
+  renderContextPreview();
+} catch { byId('environment').textContent = 'Unknown'; }

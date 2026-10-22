@@ -49,3 +49,21 @@ main{max-width:none;width:100%;padding-left:24px;padding-right:24px}
 .route-node[data-hop="4"]{flex:.85;min-width:180px;padding-left:12px;padding-right:12px}
 
 .log-line{display:block;margin-bottom:6px}.log-line.log-error{color:#ff9292;background:#702c3659;border-left:3px solid #ff7070;padding:5px 7px}
+
+[hidden]{display:none!important}#environment{font-weight:700;padding:8px 12px;border:1px solid #b8c9d8;border-radius:6px}#actual-cohort{font-weight:700}#randomize-user{margin:16px 0 0}
+
+.current-user { overflow-wrap: anywhere; }
+
+.workspace.without-harness{grid-template-columns:minmax(0,1fr)}
+.route-node[data-hop="0"]{flex:1;min-width:240px}
+#web-ui-controls .selection{margin-top:12px}
+#web-ui-controls .current-user{font-size:12px}
+#web-ui-controls button{width:100%;font-size:13px}
+#web-ui-controls .quiet{font-size:11px}
+
+/* Test controls live inside the persistent Web UI node. */
+.workspace{grid-template-columns:minmax(0,1fr)}
+.test-harness{padding:12px 0;border-bottom:1px solid var(--line)}
+.test-harness summary{font-size:14px;font-weight:700}
+.test-harness .toggle-row{padding:12px 0}
+.test-harness .toggle-row strong{font-size:13px}

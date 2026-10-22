@@ -2,8 +2,8 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {scenarios, verifyResult} from '../src/DemoUI/public/coverage.mjs';
 
-function resultFor(bits, scenario = 'high-value', cohort = 'test') {
-  const actual = cohort === 'rollback' ? '000' : bits;
+function resultFor(bits, scenario = 'high-value') {
+  const actual = bits;
   const amount = scenario === 'high-value' ? 1250 : 50;
   const standardFee = amount * 0.02;
   const discount = actual[0] === '1' ? standardFee * 0.5 : 0;
@@ -11,7 +11,7 @@ function resultFor(bits, scenario = 'high-value', cohort = 'test') {
   const total = amount + fee;
   const decision = actual[1] === '1' && amount >= 1000 ? 'review' : 'approve';
   return {
-    context: {combination: bits, amount, cohort},
+    context: {combination: bits, amount},
     trace: [...actual].map(bit => ({isV2: bit === '1', reason: 'RULE_MATCH'})),
     data: {
       amount, standardFee, feeDiscount: discount, fee, total, currency: 'AUD',
@@ -21,13 +21,13 @@ function resultFor(bits, scenario = 'high-value', cohort = 'test') {
   };
 }
 
-test('all eight scenario labels and business outcomes verify across scenarios and cohorts', () => {
+test('all eight scenario labels and business outcomes verify across scenarios', () => {
   assert.equal(scenarios.length, 8);
   assert.equal(scenarios[0][1], 'Baseline');
   assert.equal(scenarios[7][1], 'Combined candidate');
   for (const [bits] of scenarios) {
     for (const scenario of ['standard', 'high-value']) {
-      for (const cohort of ['test', 'rollback']) assert.equal(verifyResult(resultFor(bits, scenario, cohort)).passed, true);
+      assert.equal(verifyResult(resultFor(bits, scenario)).passed, true);
     }
   }
 });

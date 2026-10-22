@@ -1,15 +1,10 @@
+import {loadDemoEnvironment} from './demo-environment.mjs';
 import {createServer} from 'node:net';
 import {spawn} from 'node:child_process';
-import {existsSync} from 'node:fs';
-import {loadEnvFile} from 'node:process';
 import {fileURLToPath} from 'node:url';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const settings = new URL('../.env', import.meta.url);
-// Load the local SDK key without displaying it or passing it to the UI.
-if (existsSync(settings)) {
-  loadEnvFile(fileURLToPath(settings));
-}
+const serviceEnvironment = loadDemoEnvironment();
 
 // Fail clearly before starting anything if a previous demo still owns a port.
 for (const port of [4310, 4311, 4312, 4313]) {
@@ -32,10 +27,10 @@ function stop(code = 0) {
 
 for (const service of ['PaymentService', 'RiskService', 'NotificationService']) {
   children.push(spawn('dotnet', [`src/${service}/bin/Debug/net8.0/${service}.dll`], {
-    cwd: root, stdio: 'inherit', env: {...process.env}
+    cwd: root, stdio: 'inherit', env: serviceEnvironment
   }));
 }
-const uiEnvironment = {...process.env};
+const uiEnvironment = {...serviceEnvironment};
 delete uiEnvironment.LD_SDK_KEY;
 delete uiEnvironment.LD_API_KEY;
 children.push(spawn(process.execPath, ['src/DemoUI/server.mjs'], {

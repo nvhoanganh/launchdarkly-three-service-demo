@@ -24,7 +24,9 @@ function node(index, state = 'waiting', detail = 'Waiting', outcome = null) {
 }
 export function resetRoute(pending = false) {
   if (pending) logBuffers.forEach(buffer => { buffer.length = 0; });
+  const controls = byId('web-ui-controls');
   byId('route-flow').innerHTML = names.map((_, index) => `${index ? '<span class="route-arrow" aria-hidden="true">→</span>' : ''}${node(index)}`).join('');
+  if (controls) byId('route-flow').querySelector('[data-hop="0"]').append(controls);
   byId('route-status').textContent = pending ? 'Waiting for the service response…' : 'Submit a payment to follow its journey.';
   if (pending) byId('route-flow').querySelector('[data-hop="0"]').classList.add('active');
 }
@@ -38,8 +40,13 @@ export async function replayRoute(result) {
   for (let index = 0; index < names.length; index++) {
     const step = index > 0 && index < 4 ? result.trace[index - 1] : null;
     const state = step ? step.isV2 ? 'selected-v2' : 'selected-default' : index === 4 && result.error ? 'route-failed' : 'route-complete';
-    const detail = step ? '' : index === 0 ? `Context ${result.context.combination}` : result.error ? 'HTTP 500 · compatibility error' : `Success · AUD ${Number(result.data.total).toFixed(2)}`;
-    byId('route-flow').querySelector(`[data-hop="${index}"]`).outerHTML = node(index, `${state} active`, detail, index === 4 ? result : null);
+    const detail = step ? '' : index === 0 ? `Context ${result.context.combination}` : result.error ? `HTTP error · ${result.error.startsWith('Synthetic demo fault:') ? 'synthetic injected failure' : 'journey failure'}` : `Success · AUD ${Number(result.data.total).toFixed(2)}`;
+    const target = byId('route-flow').querySelector(`[data-hop="${index}"]`);
+    if (index === 0) {
+      // Keep the live form and its handlers intact throughout replay.
+      target.className = `route-node ${state} active`;
+      target.querySelector('.route-detail').textContent = detail;
+    } else target.outerHTML = node(index, `${state} active`, detail, index === 4 ? result : null);
     byId('route-status').textContent = `Replay: ${names[index]}${step ? ' evaluated its flag' : ''}`;
     if (index) byId('route-flow').querySelectorAll('.route-arrow')[index - 1].classList.add('travelled');
     if (!reduced) await pause(400);

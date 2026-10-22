@@ -37,13 +37,7 @@ async Task<IResult> ProcessJourney(JourneyRequest request, HttpClient httpClient
 
     // Every service reconstructs the SAME LaunchDarkly context from the HTTP request.
     // Combination is a targeting attribute; it never overrides a live flag value.
-    var context = Context.Builder(request.Context.Key)
-        .Kind("demo")
-        .Set("team", request.Context.Team)
-        .Set("cohort", request.Context.Cohort)
-        .Set("amount", (double)request.Context.Amount)
-        .Set("combination", request.Context.Combination)
-        .Build();
+    var context = request.Context.ToLaunchDarklyContext();
 
     // This team owns this flag. Evaluate it for the request's context.
     var evaluation = launchDarklyClient.BoolVariationDetail("risk-v2", context, false);

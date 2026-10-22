@@ -1,4 +1,5 @@
 import express from 'express';
+import {buildDemoContext} from './demo-context.mjs';
 import {randomUUID} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 
@@ -41,23 +42,31 @@ app.get('/api/logs/:service', async (request, response) => {
   } finally { response.end(); }
 });
 
+// Report the actual running PaymentService configuration, never SDK credentials.
+app.get('/api/config', async (_request, response) => {
+  try {
+    const upstream = await fetch('http://127.0.0.1:4311/health', {signal: AbortSignal.timeout(2000)});
+    const health = await upstream.json();
+    response.set('Cache-Control', 'no-store').json({
+      environment: ['prod', 'test'].includes(health.environment) ? health.environment : 'unknown',
+      failureRate: health.failureRate,
+      contextKind: health.contextKind || 'unknown'
+    });
+  } catch { response.status(503).json({environment: 'unknown', contextKind: 'unknown', error: 'Payment service configuration unavailable'}); }
+});
+
 app.post('/api/demo', async (request, response) => {
-  const {paymentsV2, riskV2, notificationsV2, team = 'payments', amount = 1250, cohort = 'test'} = request.body;
+  const {paymentsV2, riskV2, notificationsV2, amount = 1250} = request.body;
   if (![paymentsV2, riskV2, notificationsV2].every(value => typeof value === 'boolean') ||
-      !['payments', 'risk', 'notifications'].includes(team) ||
-      !Number.isFinite(amount) || amount <= 0 || amount > 1000000 || Math.abs(amount * 100 - Math.round(amount * 100)) > 0.000001 || !['test', 'release', 'rollback'].includes(cohort)) {
-    return response.status(400).json({error: 'Choose valid toggles, team, cohort and payment amount.'});
+      !Number.isFinite(amount) || amount <= 0 || amount > 1000000 || Math.abs(amount * 100 - Math.round(amount * 100)) > 0.000001) {
+    return response.status(400).json({error: 'Choose valid toggles and payment amount.'});
   }
 
   // Toggles select a synthetic test context, NOT global flag settings.
-  const combination = [paymentsV2, riskV2, notificationsV2].map(value => value ? '1' : '0').join('');
-  const context = {
-    key: `synthetic-${team}-${amount}`,
-    team,
-    cohort,
-    amount,
-    combination
-  };
+  let context;
+  try { context = buildDemoContext(request.body, process.env.ENV); }
+  catch (error) { return response.status(400).json({error: error.message}); }
+
 
   try {
     const result = await fetch('http://127.0.0.1:4311/process', {

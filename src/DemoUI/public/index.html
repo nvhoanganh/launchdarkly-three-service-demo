@@ -7,37 +7,34 @@
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-  <header><a href="/" class="brand"><span class="brand-mark">⇄</span> LaunchDarkly + Microservices Demo</a><span id="status" role="status">Checking services…</span></header>
+  <header><a href="/" class="brand"><span class="brand-mark">⇄</span> LaunchDarkly + Microservices Demo</a><span id="environment" role="status">Environment: checking…</span><span id="status" role="status">Checking services…</span></header>
   <main>
     <section class="intro"><h1>Deploy once.<br>Release many variations.</h1><p>Choose the logic each team wants to test. Follow a synthetic payment through three independent .NET services.</p></section>
     <div class="workspace">
-      <aside class="controls">
-        <h2>Build a test context</h2>
-        <p class="quiet">Toggle the requested versions. Each service evaluates its own flag.</p>
-        <form id="demo-form">
-          <label class="toggle-row"><span><strong>Payment V2</strong><code>payments-v2</code></span><input id="payments" type="checkbox" role="switch"><span class="switch" aria-hidden="true"></span></label>
-          <label class="toggle-row"><span><strong>Risk V2</strong><code>risk-v2</code></span><input id="risk" type="checkbox" role="switch"><span class="switch" aria-hidden="true"></span></label>
-          <label class="toggle-row"><span><strong>Notification V2</strong><code>notifications-v2</code></span><input id="notifications" type="checkbox" role="switch"><span class="switch" aria-hidden="true"></span></label>
-          <div class="selection"><label for="amount">Payment amount (AUD)</label><select id="amount"><option value="50">AUD 50 · small payment</option><option value="500">AUD 500 · everyday payment</option><option value="999">AUD 999 · below review threshold</option><option value="1000">AUD 1,000 · review threshold</option><option value="1250" selected>AUD 1,250 · large payment</option><option value="5000">AUD 5,000 · large payment</option></select></div>
-          <div class="selection"><label for="cohort">Cohort</label><select id="cohort"><option value="test">Test cohort</option><option value="release">Release cohort</option><option value="rollback">Rollback cohort</option></select></div>
-          <button type="submit" id="submit">Submit payment</button>
-        </form>
-      </aside>
-      <section class="journey" aria-live="polite">
+      <section class="journey" aria-live="polite"><p id="actual-cohort" role="status">No evaluated cohort yet.</p>
         <div class="section-heading"><div><h2>What actually ran</h2><p class="quiet">PaymentService → RiskService → NotificationService</p></div></div>
         <section class="route-panel" aria-label="Request journey">
           <div class="route-heading"><strong>Follow the request</strong><span id="route-status" role="status">Submit a payment to follow its journey.</span></div>
-          <div class="route-scroll"><div id="route-flow" class="route-flow"></div></div>
+          <div class="route-scroll"><div id="route-flow" class="route-flow"><div id="web-ui-controls"><form id="demo-form">
+      <details id="test-harness" class="test-harness" hidden>
+        <summary>Test Harness</summary>
+        <p class="quiet">Toggle the requested versions. Each service evaluates its own flag.</p>
+          <label class="toggle-row"><span><strong>Payment V2</strong><code>payments-v2</code></span><input id="payments" type="checkbox" role="switch" form="demo-form"><span class="switch" aria-hidden="true"></span></label>
+          <label class="toggle-row"><span><strong>Risk V2</strong><code>risk-v2</code></span><input id="risk" type="checkbox" role="switch" form="demo-form"><span class="switch" aria-hidden="true"></span></label>
+          <label class="toggle-row"><span><strong>Notification V2</strong><code>notifications-v2</code></span><input id="notifications" type="checkbox" role="switch" form="demo-form"><span class="switch" aria-hidden="true"></span></label>
+      </details>
+          <div class="selection"><label for="amount">Payment amount (AUD)</label><select id="amount"><option value="50">AUD 50 · small payment</option><option value="500">AUD 500 · everyday payment</option><option value="999">AUD 999 · below review threshold</option><option value="1000">AUD 1,000 · review threshold</option><option value="1250" selected>AUD 1,250 · large payment</option><option value="5000">AUD 5,000 · large payment</option></select></div>
+          <p class="current-user">Current user ID: <strong id="current-user-id" aria-live="polite"></strong></p><div id="prod-controls" hidden><button type="button" id="randomize-user" class="secondary">Randomize user ID</button><p class="quiet">Fresh synthetic identity; stable until clicked again. Does not guarantee V2 or override flags.</p></div><button type="submit" id="submit">Submit payment</button></form></div></div></div>
           <p class="route-caption">Animated replay of the returned service trace. UI → Express → Payment → Risk → Notification; the response returns through the same chain.</p>
         </section>
         <div class="payload-previews">
         <details open><summary>Request context preview · sent to every service on submit</summary><pre id="context">No context submitted yet.</pre></details>
         <details open><summary>See the complete HTTP response and evaluation reasons</summary><pre id="response">No response yet.</pre></details>
         </div>
-        <div class="explanation"><strong>What the toggles mean</strong><p>They set the <code>combination</code> context attribute. In live mode, LaunchDarkly rules decide the actual flag values. These controls never edit global flags.</p><p>Both code paths are already deployed. Flags release behavior; compatible contracts still need testing.</p></div>
+        <div id="toggle-explanation" class="explanation" hidden><strong>What the toggles mean</strong><p>They set the <code>combination</code> context attribute. In live mode, LaunchDarkly rules decide the actual flag values. These controls never edit global flags.</p><p>Both code paths are already deployed. Flags release behavior; compatible contracts still need testing.</p></div>
       </section>
     </div>
-    <section class="coverage">
+    <section id="test-coverage" class="coverage" hidden>
       <div class="section-heading"><div><h2>Eight combinations make coverage visible</h2><p class="quiet">Three independent binary flags create 2³ = 8 behavior combinations.</p></div><button id="matrix" class="secondary">Test all 8 combinations</button></div>
       <p id="coverage-scope" class="coverage-scope"></p>
       <div class="table-scroll"><table class="coverage-table"><thead><tr><th>Scenario</th><th>Payments</th><th>Risk</th><th>Notifications</th><th>What to verify / actual outcome</th><th>Evidence</th></tr></thead><tbody id="matrix-results"></tbody></table></div>
