@@ -12,12 +12,12 @@ test('single controls, accessible external toggles, no cohort dropdown',()=>{
  assert.doesNotMatch(html,/<details[^>]*id="test-harness"[^>]*\bopen\b/);
  assert.match(html,/<summary>Combination Testing<\/summary>/);
  assert.match(html,/<details id="test-presets"[^>]*name="test-controls"[^>]*open hidden>/);
- assert.ok(html.indexOf('id="test-harness"') > html.indexOf('id="web-ui-controls"'));
+ assert.ok(html.indexOf('id="test-harness"') < html.indexOf('id="web-ui-controls"'));
  assert.ok(html.indexOf('id="test-harness"') < html.indexOf('</form>'));
  assert.ok(html.indexOf('id="test-presets"') < html.indexOf('id="test-harness"'));
  assert.doesNotMatch(html,/<label[^>]*for="tester-preset"/);
  assert.match(html,/<select id="tester-preset" aria-label="Test preset"/);
- assert.doesNotMatch(html,/<aside/);
+ assert.match(html,/<aside class="scenario-panel"/);
  assert.equal([...html.matchAll(/role="switch" form="demo-form"/g)].length,3);
  assert.match(html,/<div id="web-ui-controls"><form id="demo-form">/);
 });

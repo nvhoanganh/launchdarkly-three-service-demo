@@ -2,6 +2,7 @@ const byId = id => document.getElementById(id);
 const names = ['Web UI', 'Payment', 'Risk', 'Notification', 'Response'];
 const logBuffers = [[], [], [], [], []];
 const logOpen = new Set([1, 2, 3]);
+let requestStarted = false;
 const keys = ['', 'payments-v2', 'risk-v2', 'notifications-v2', ''];
 const escape = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -39,10 +40,17 @@ function node(index, state = 'waiting', detail = 'Waiting', outcome = null) {
   return `<article class="route-node ${state}" data-hop="${index}"><strong>${names[index]}</strong>${index === 0 || index === 4 ? '' : `<div class="route-track"><span class="route-packet"></span><span class="route-branch default-branch">${index > 0 && index < 4 ? 'Default' : index === 0 ? 'Request' : 'Outcome'}</span>${index > 0 && index < 4 ? '<span class="route-branch v2-branch">V2</span>' : ''}</div>`}<span class="route-detail">${escape(detail)}</span>${keys[index] ? `<code>${keys[index]}</code>` : ''}${serviceLogs(index)}</article>`;
 }
 export function resetRoute(pending = false) {
+  if (pending) requestStarted = true;
   if (pending) logBuffers.forEach(buffer => { buffer.length = 0; });
   const controls = byId('web-ui-controls');
   byId('route-flow').innerHTML = names.map((_, index) => `${index ? '<span class="route-arrow" aria-hidden="true">→</span>' : ''}${node(index)}`).join('');
   if (controls) byId('route-flow').querySelector('[data-hop="0"]').append(controls);
+  const responseNode = byId('route-flow').querySelector('[data-hop="4"]');
+  if (!requestStarted) {
+    responseNode.classList.add('response-placeholder');
+    responseNode.innerHTML = '';
+    responseNode.setAttribute('aria-label', 'Response placeholder');
+  }
   byId('route-status').textContent = pending ? 'Waiting for the service response…' : 'Submit a payment to follow its journey.';
   if (pending) byId('route-flow').querySelector('[data-hop="0"]').classList.add('active');
 }

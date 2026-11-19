@@ -24,6 +24,7 @@ function renderContextPreview() {
   byId('tester-preset').value = presetBits.has(bits) ? bits : 'custom';
   const key = runtime.environment === 'prod' && syntheticUserKey ? syntheticUserKey : `synthetic-payments-${amount}`;
   byId('current-user-id').textContent = key;
+  byId('checkout-preview').innerHTML = `<dl class="response-money"><div><dt>Subtotal</dt><dd>${money(amount)}</dd></div></dl>`;
   byId('context').textContent = JSON.stringify({
     kind: runtime.contextKind, key,
     amount, combination: selectedBits()
