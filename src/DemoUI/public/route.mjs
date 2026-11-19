@@ -36,6 +36,9 @@ function serviceLogs(index) {
   return `<details class="service-logs" ${logOpen.has(index) ? 'open' : ''}><summary>Application logs</summary><pre data-log="${index}">${logContent(index)}</pre></details>`;
 }
 function node(index, state = 'waiting', detail = 'Waiting', outcome = null) {
+  if (index === 4 && !outcome && !state.includes('route-failed')) {
+    return '<article class="route-node checkout-result response-placeholder" data-hop="4" aria-label="Response placeholder"></article>';
+  }
   if (index === 4) return `<article class="route-node checkout-result ${state}" data-hop="4"><strong>${names[index]}</strong>${checkout(outcome, state, detail)}</article>`;
   return `<article class="route-node ${state}" data-hop="${index}"><strong>${names[index]}</strong>${index === 0 || index === 4 ? '' : `<div class="route-track"><span class="route-packet"></span><span class="route-branch default-branch">${index > 0 && index < 4 ? 'Default' : index === 0 ? 'Request' : 'Outcome'}</span>${index > 0 && index < 4 ? '<span class="route-branch v2-branch">V2</span>' : ''}</div>`}<span class="route-detail">${escape(detail)}</span>${keys[index] ? `<code>${keys[index]}</code>` : ''}${serviceLogs(index)}</article>`;
 }
@@ -46,7 +49,7 @@ export function resetRoute(pending = false) {
   byId('route-flow').innerHTML = names.map((_, index) => `${index ? '<span class="route-arrow" aria-hidden="true">→</span>' : ''}${node(index)}`).join('');
   if (controls) byId('route-flow').querySelector('[data-hop="0"]').append(controls);
   const responseNode = byId('route-flow').querySelector('[data-hop="4"]');
-  if (!requestStarted) {
+  if (!requestStarted || pending) {
     responseNode.classList.add('response-placeholder');
     responseNode.innerHTML = '';
     responseNode.setAttribute('aria-label', 'Response placeholder');
